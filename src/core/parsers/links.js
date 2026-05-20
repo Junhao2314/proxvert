@@ -2,7 +2,7 @@
  * 分享链接（含 base64 订阅）→ NormalizedNode[]
  */
 import { base64Decode } from '../detect.js';
-import { CONVERTIBLE_TYPES, normalizeType } from '../model.js';
+import { CONVERTIBLE_TYPES } from '../model.js';
 
 const SCHEMES = /^(vmess|vless|trojan|ss|ssr|hysteria2|hy2|tuic|socks5?|http|https|wg):\/\//i;
 

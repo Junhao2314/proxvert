@@ -3,56 +3,192 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端，节点数据不离开浏览器" />
     <title>proxvert · 代理配置格式互转</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <div class="bg-decor" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
     <header class="hdr">
-      <h1>proxvert</h1>
-      <span class="sub">Mihomo · sing-box · 分享链接 互转</span>
+      <div class="hdr-inner">
+        <a class="brand" href="/" aria-label="proxvert">
+          <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="brandG" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#6366F1" />
+                <stop offset="50%" stop-color="#8B5CF6" />
+                <stop offset="100%" stop-color="#EC4899" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4"
+              stroke="url(#brandG)"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="brand-name">proxvert</span>
+          <span class="brand-badge">v0.1</span>
+        </a>
+        <nav class="hdr-nav">
+          <a
+            class="nav-link"
+            href="https://github.com/"
+            target="_blank"
+            rel="noopener"
+            aria-label="GitHub"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.84c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2z"
+              />
+            </svg>
+          </a>
+        </nav>
+      </div>
     </header>
 
     <main class="app">
-      <section class="bar">
-        <div class="bar-group">
+      <section class="hero">
+        <span class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          纯前端 · 数据不离开浏览器
+        </span>
+        <h1 class="hero-title">
+          代理配置
+          <span class="grad-text">无损互转</span>
+        </h1>
+        <p class="hero-sub">
+          一键在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与 <em>vmess/vless/trojan/ss/ssr/hy2/tuic/wg</em> 分享链接之间转换，
+          支持 base64 订阅，自动识别输入格式。
+        </p>
+      </section>
+
+      <section class="features" aria-label="特性">
+        <div class="feat">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <div class="feat-title">极速转换</div>
+            <div class="feat-desc">本地运算，无网络请求</div>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+              <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <div class="feat-title">隐私无虞</div>
+            <div class="feat-desc">节点数据不上传服务器</div>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <div class="feat-title">多协议</div>
+            <div class="feat-desc">vmess · vless · trojan · ss/ssr · hy2 · tuic · wg</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bar card">
+        <div class="bar-group" role="radiogroup" aria-label="输出格式">
           <span class="bar-label">输出格式</span>
-          <label><input type="radio" name="target" value="links" checked /> 分享链接</label>
-          <label><input type="radio" name="target" value="singbox" /> sing-box JSON</label>
-          <label><input type="radio" name="target" value="mihomo" /> Mihomo YAML</label>
+          <label class="seg">
+            <input type="radio" name="target" value="links" checked />
+            <span>分享链接</span>
+          </label>
+          <label class="seg">
+            <input type="radio" name="target" value="singbox" />
+            <span>sing-box JSON</span>
+          </label>
+          <label class="seg">
+            <input type="radio" name="target" value="mihomo" />
+            <span>Mihomo YAML</span>
+          </label>
         </div>
         <div class="bar-actions">
-          <button id="btn-convert" class="primary">转换</button>
-          <button id="btn-clear">清空</button>
-          <button id="btn-demo" class="ghost">填入示例</button>
+          <button id="btn-demo" class="ghost" type="button">填入示例</button>
+          <button id="btn-clear" type="button">清空</button>
+          <button id="btn-convert" class="primary" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 7h11l-3-3M19 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>转换</span>
+            <kbd class="kbd">⌘↵</kbd>
+          </button>
         </div>
       </section>
 
-      <section class="pane">
-        <div class="pane-head">
-          <span class="pane-title">输入（自动识别）</span>
-          <span id="hint" class="hint"></span>
-        </div>
-        <textarea
-          id="input"
-          spellcheck="false"
-          placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接，也支持 base64 订阅"
-        ></textarea>
-      </section>
+      <div class="io-grid">
+        <section class="pane card">
+          <div class="pane-head">
+            <span class="pane-title">
+              <span class="pane-dot" style="background: #6366F1"></span>
+              输入（自动识别）
+            </span>
+            <span id="hint" class="hint"></span>
+          </div>
+          <textarea
+            id="input"
+            spellcheck="false"
+            placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接，也支持 base64 订阅"
+          ></textarea>
+        </section>
 
-      <section class="pane">
-        <div class="pane-head">
-          <span class="pane-title">输出</span>
-          <button id="btn-copy" class="ghost small">复制</button>
-        </div>
-        <textarea id="output" spellcheck="false" readonly></textarea>
-      </section>
+        <section class="pane card">
+          <div class="pane-head">
+            <span class="pane-title">
+              <span class="pane-dot" style="background: #22D3EE"></span>
+              输出
+            </span>
+            <button id="btn-copy" class="ghost small" type="button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8" />
+                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+              <span>复制</span>
+            </button>
+          </div>
+          <textarea id="output" spellcheck="false" readonly placeholder="转换结果将显示在这里…"></textarea>
+        </section>
+      </div>
 
       <div id="error" class="err" hidden></div>
     </main>
 
     <footer class="ftr">
-      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
-      · 纯前端，节点数据不会离开浏览器
+      <div class="ftr-inner">
+        <span class="ftr-brand">© proxvert</span>
+        <span class="ftr-sep">·</span>
+        <span>纯前端 · 节点数据不会离开浏览器</span>
+        <span class="ftr-sep">·</span>
+        <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      </div>
     </footer>
 
     <script type="module" src="/src/main.js"></script>

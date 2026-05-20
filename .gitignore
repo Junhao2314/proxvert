@@ -25,3 +25,17 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Playwright artifacts
+playwright-report/
+test-results/
+.playwright/
+.playwright-test/
+playwright/.local-browsers/
+traces/
+*.trace
+*.zip
+
+# Generated images
+*.png
+*.PNG

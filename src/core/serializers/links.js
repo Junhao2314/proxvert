@@ -221,3 +221,15 @@ export default function serialize(nodes) {
   const lines = nodes.map((n) => nodeToLink(n)).filter(Boolean);
   return lines.join('\n');
 }
+
+/**
+ * 多节点 → 单条 base64 订阅文本(URL-safe 兼容)。
+ */
+export function toBase64Sub(nodes) {
+  return b64Utf8(serialize(nodes));
+}
+
+/** 单节点导出为分享链接,UI 层做 per-node QR 用。 */
+export function nodeToShareLink(node) {
+  return nodeToLink(node);
+}

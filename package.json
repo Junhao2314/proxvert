@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "vite": "^5.4.0"

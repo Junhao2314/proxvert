@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端，节点数据不离开浏览器" />
+    <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端,节点数据不离开浏览器" />
     <title>proxvert · 代理配置格式互转</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +12,20 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/style.css" />
+    <script>
+      // 防主题闪烁:DOM 解析阶段就写上 data-theme
+      (function () {
+        try {
+          var v = localStorage.getItem('proxvert.theme');
+          if (v !== 'dark' && v !== 'light') {
+            v = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          }
+          document.documentElement.setAttribute('data-theme', v);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="bg-decor" aria-hidden="true">
@@ -41,9 +55,24 @@
             />
           </svg>
           <span class="brand-name">proxvert</span>
-          <span class="brand-badge">v0.1</span>
+          <span class="brand-badge">v0.2</span>
         </a>
         <nav class="hdr-nav">
+          <button
+            id="btn-theme"
+            class="nav-link theme-toggle"
+            type="button"
+            aria-label="切换主题"
+            title="切换主题"
+          >
+            <svg class="ic-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            </svg>
+            <svg class="ic-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
           <a
             class="nav-link"
             href="https://github.com/"
@@ -73,8 +102,8 @@
           <span class="grad-text">无损互转</span>
         </h1>
         <p class="hero-sub">
-          一键在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与 <em>vmess/vless/trojan/ss/ssr/hy2/tuic/wg</em> 分享链接之间转换，
-          支持 base64 订阅，自动识别输入格式。
+          一键在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与 <em>vmess/vless/trojan/ss/ssr/hy2/tuic/wg</em> 分享链接之间转换,
+          支持 base64 订阅与二维码导出,自动识别输入格式。
         </p>
       </section>
 
@@ -87,7 +116,7 @@
           </div>
           <div>
             <div class="feat-title">极速转换</div>
-            <div class="feat-desc">本地运算，无网络请求</div>
+            <div class="feat-desc">本地运算,无网络请求</div>
           </div>
         </div>
         <div class="feat">
@@ -144,37 +173,91 @@
         </div>
       </section>
 
+      <details id="history" class="history card">
+        <summary class="history-summary">
+          <span class="history-title">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>最近转换</span>
+            <span class="history-meta"><span id="history-count">0</span> / 10</span>
+          </span>
+          <span class="history-actions">
+            <button id="btn-history-clear" class="ghost small" type="button">清空</button>
+            <span class="chev" aria-hidden="true">▾</span>
+          </span>
+        </summary>
+        <div id="history-list" class="history-list" data-empty="true">
+          <div class="history-empty">暂无记录 · 完成转换后会自动保存,最多保留 10 条</div>
+        </div>
+      </details>
+
       <div class="io-grid">
         <section class="pane card">
           <div class="pane-head">
             <span class="pane-title">
               <span class="pane-dot" style="background: #6366F1"></span>
-              输入（自动识别）
+              输入(自动识别)
             </span>
-            <span id="hint" class="hint"></span>
+            <span class="pane-meta">
+              <span id="detect-badge" class="badge" hidden></span>
+              <span id="hint" class="hint"></span>
+            </span>
           </div>
           <textarea
             id="input"
             spellcheck="false"
-            placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接，也支持 base64 订阅"
+            placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接,也支持 base64 订阅。多节点可用 换行 / 空行 / 逗号 / 分号 分隔。"
           ></textarea>
         </section>
 
         <section class="pane card">
-          <div class="pane-head">
-            <span class="pane-title">
-              <span class="pane-dot" style="background: #22D3EE"></span>
-              输出
-            </span>
+          <div class="pane-head pane-head-tabs">
+            <div class="tabs" role="tablist" aria-label="输出形态">
+              <button class="tab active" data-tab="text" role="tab" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+                <span>文本</span>
+              </button>
+              <button class="tab" data-tab="sub" role="tab" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8" /><path d="M8 9h8M8 13h6M8 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+                <span>订阅</span>
+              </button>
+              <button class="tab" data-tab="qr" role="tab" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
+                  <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
+                  <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M14 14h3v3h-3zM20 14h1v1h-1zM14 20h1v1h-1zM18 18h3v3h-3z" fill="currentColor" />
+                </svg>
+                <span>二维码</span>
+              </button>
+            </div>
             <button id="btn-copy" class="ghost small" type="button">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8" />
                 <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" />
               </svg>
-              <span>复制</span>
+              <span>复制当前</span>
             </button>
           </div>
-          <textarea id="output" spellcheck="false" readonly placeholder="转换结果将显示在这里…"></textarea>
+          <div class="tab-panels">
+            <div class="tab-panel active" data-tab="text">
+              <textarea id="output" spellcheck="false" readonly placeholder="转换结果将显示在这里…"></textarea>
+            </div>
+            <div class="tab-panel" data-tab="sub">
+              <textarea id="output-sub" spellcheck="false" readonly placeholder="base64 订阅文本(仅在目标为「分享链接」时可用)"></textarea>
+              <div class="sub-meta">
+                <span id="sub-size" class="hint"></span>
+                <span class="sub-tip">可直接作为 Shadowrocket / Clash 订阅 URL 中 base64 形式的内容使用</span>
+              </div>
+            </div>
+            <div class="tab-panel" data-tab="qr">
+              <div id="qr-grid" class="qr-grid" data-empty="true">
+                <div class="qr-empty">仅在目标为「分享链接」时生成二维码 · 每节点一张 + 全部聚合订阅一张</div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 

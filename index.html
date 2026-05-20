@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>proxvert · 代理配置格式互转</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="hdr">
+      <h1>proxvert</h1>
+      <span class="sub">Mihomo · sing-box · 分享链接 互转</span>
+    </header>
+
+    <main class="app">
+      <section class="bar">
+        <div class="bar-group">
+          <span class="bar-label">输出格式</span>
+          <label><input type="radio" name="target" value="links" checked /> 分享链接</label>
+          <label><input type="radio" name="target" value="singbox" /> sing-box JSON</label>
+          <label><input type="radio" name="target" value="mihomo" /> Mihomo YAML</label>
+        </div>
+        <div class="bar-actions">
+          <button id="btn-convert" class="primary">转换</button>
+          <button id="btn-clear">清空</button>
+          <button id="btn-demo" class="ghost">填入示例</button>
+        </div>
+      </section>
+
+      <section class="pane">
+        <div class="pane-head">
+          <span class="pane-title">输入（自动识别）</span>
+          <span id="hint" class="hint"></span>
+        </div>
+        <textarea
+          id="input"
+          spellcheck="false"
+          placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接，也支持 base64 订阅"
+        ></textarea>
+      </section>
+
+      <section class="pane">
+        <div class="pane-head">
+          <span class="pane-title">输出</span>
+          <button id="btn-copy" class="ghost small">复制</button>
+        </div>
+        <textarea id="output" spellcheck="false" readonly></textarea>
+      </section>
+
+      <div id="error" class="err" hidden></div>
+    </main>
+
+    <footer class="ftr">
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      · 纯前端，节点数据不会离开浏览器
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

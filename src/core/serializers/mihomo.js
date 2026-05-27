@@ -12,6 +12,8 @@ function nodeToMihomo(n) {
   };
 
   const tls = n.tls || {};
+  // Hysteria / TUIC nodes may carry SNI on both n.server_name and tls.server_name.
+  // Prefer tls, but keep the root fallback so older normalized nodes still serialize.
 
   switch (n.type) {
     case 'vmess':
@@ -68,12 +70,26 @@ function nodeToMihomo(n) {
       if (n.obfs_param) out['obfs-param'] = n.obfs_param;
       break;
 
+    case 'hysteria':
+      out.password = n.password || n.auth_str;
+      if (tls.server_name || n.server_name) out.sni = tls.server_name || n.server_name;
+      if (tls.insecure || n.insecure) out['skip-cert-verify'] = true;
+      if (n.up_mbps) out.up = n.up_mbps;
+      if (n.down_mbps) out.down = n.down_mbps;
+      if (n.obfsObj) {
+        out.obfs = n.obfsObj.type;
+        if (n.obfsObj.password) out['obfs-password'] = n.obfsObj.password;
+      }
+      const hyAlpn = n.alpn || tls.alpn;
+      if (hyAlpn) out.alpn = Array.isArray(hyAlpn) ? hyAlpn : [hyAlpn];
+      break;
+
     case 'hysteria2':
       out.password = n.password || n.auth_str;
       if (tls.server_name || n.server_name) out.sni = tls.server_name || n.server_name;
       if (tls.insecure || n.insecure) out['skip-cert-verify'] = true;
-      if (n.up_mbps) out.up = `${n.up_mbps} Mbps`;
-      if (n.down_mbps) out.down = `${n.down_mbps} Mbps`;
+      if (n.up_mbps) out.up = n.up_mbps;
+      if (n.down_mbps) out.down = n.down_mbps;
       if (n.obfsObj) {
         out.obfs = n.obfsObj.type;
         if (n.obfsObj.password) out['obfs-password'] = n.obfsObj.password;
@@ -106,6 +122,7 @@ function nodeToMihomo(n) {
     case 'socks':
       if (n.username) out.username = n.username;
       if (n.password) out.password = n.password;
+      if (tls.enabled) out.tls = true;
       break;
 
     case 'http':
@@ -113,7 +130,33 @@ function nodeToMihomo(n) {
       if (n.password) out.password = n.password;
       if (tls.enabled) out.tls = true;
       break;
+
+    case 'naive':
+      if (n.username) out.username = n.username;
+      if (n.password) out.password = n.password;
+      out.tls = true;
+      if (tls.server_name) out.sni = tls.server_name;
+      if (tls.insecure) out['skip-cert-verify'] = true;
+      break;
+
+    case 'snell':
+      if (n.password) out.psk = n.password;
+      if (n.obfs) out.obfs = n.obfs;
+      if (n.obfs_param) {
+        try { out['obfs-opts'] = JSON.parse(n.obfs_param); } catch { out['obfs-opts'] = n.obfs_param; }
+      }
+      if (n.version) out.version = Number(n.version) || n.version;
+      break;
+
+    case 'ssh':
+      if (n.username) out.username = n.username;
+      if (n.password) out.password = n.password;
+      if (n.private_key) out['private-key'] = n.private_key;
+      break;
   }
+
+  if (n.udp) out.udp = true;
+  if (n.tfo) out.tfo = true;
 
   return pruneObj(out);
 }

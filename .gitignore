@@ -20,6 +20,7 @@ Thumbs.db
 # Local tooling
 .claude/
 .playwright-mcp/
+.ace-tool/
 
 # Env
 .env

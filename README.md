@@ -17,10 +17,11 @@
 ## ✨ 特性
 
 - **三向互转** — Mihomo (Clash.Meta) YAML ⇄ sing-box JSON ⇄ 分享链接
-- **多协议支持** — `vmess` · `vless` · `trojan` · `ss` · `ssr` · `hysteria2` · `tuic` · `wireguard` · `socks` · `http`
+- **多协议支持** — `vmess` · `vless` · `trojan` · `ss` · `ssr` · `hysteria` · `hysteria2` · `tuic` · `wireguard` · `socks` · `http`
 - **自动识别格式** — 粘贴即转，无需手动选择输入格式
 - **Base64 订阅解码** — 支持节点订阅链接的整段 base64 解析
 - **纯前端运行** — 全部转换在浏览器中完成，无后端、无网络请求、无数据外发
+- **会话级历史** — 最近转换仅保存在当前浏览器会话中，点击清空会一并移除
 - **键盘友好** — `Ctrl/⌘ + Enter` 触发转换
 
 ## 🚀 在线使用
@@ -46,6 +47,9 @@ npm run dev
 # 构建生产版本（输出到 dist/）
 npm run build
 
+# 运行核心转换回归测试
+npm test
+
 # 本地预览构建产物
 npm run preview
 ```
@@ -58,6 +62,22 @@ npm run preview
 | sing-box JSON | ✓ | ✓ | ✓ |
 | Mihomo YAML | ✓ | ✓ | ✓ |
 
+### 分享链接 alias 对照
+
+| 规范化类型 | 接受的输入 scheme | 导出时使用的 scheme |
+|---|---|---|
+| `vmess` | `vmess://` | `vmess://` |
+| `vless` | `vless://` | `vless://` |
+| `trojan` | `trojan://` | `trojan://` |
+| `shadowsocks` | `ss://` | `ss://` |
+| `shadowsocksr` | `ssr://` | `ssr://` |
+| `hysteria` | `hysteria://` · `hy1://` | `hysteria://` |
+| `hysteria2` | `hysteria2://` · `hy2://` | `hysteria2://` |
+| `tuic` | `tuic://` | `tuic://` |
+| `wireguard` | `wg://` · `wireguard://` | `wg://` |
+| `socks` | `socks://` · `socks4://` · `socks5://` | `socks4://` 或 `socks5://`（取决于 `version`） |
+| `http` | `http://` · `https://` | `http://` 或 `https://`（取决于 `tls.enabled`） |
+
 ### 协议覆盖
 
 | 协议 | 关键字段 |
@@ -67,6 +87,7 @@ npm run preview
 | Trojan | `password` |
 | Shadowsocks | `method` · `password`（SIP002 两种 base64 变体） |
 | ShadowsocksR | `method` · `password` · `protocol` · `obfs` |
+| Hysteria | `password/auth_str` · `obfs` · `up/down_mbps` |
 | Hysteria2 | `password` · `obfs` · `up/down_mbps` |
 | TUIC | `uuid` · `password` · `congestion_control` |
 | WireGuard | `private_key` · `peer_public_key` · `address` |
@@ -74,6 +95,8 @@ npm run preview
 | HTTP/HTTPS | `username` · `password` · `tls` |
 
 横向支持的传输层与安全层：`ws` · `grpc` · `http` · `httpupgrade` · `tls` · `reality` · `utls`。
+
+说明：分享链接 scheme / alias 的单一来源（single source of truth）在 `src/core/share-link-schemes.js`；`hysteria://`（v1）导出时会将认证信息放在 userinfo（`hysteria://auth@host:port?...`）而不是 query string。
 
 ## 🏗️ 项目结构
 
@@ -85,6 +108,7 @@ proxvert/
 │   ├── style.css
 │   └── core/
 │       ├── detect.js       # 输入格式自动识别
+│       ├── share-link-schemes.js # 分享链接 scheme / alias 单一来源
 │       ├── model.js        # NormalizedNode 规范化模型（中心枢纽）
 │       ├── parsers/        # 三个解析器（→ NormalizedNode）
 │       │   ├── links.js

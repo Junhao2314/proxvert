@@ -22,7 +22,7 @@
  * @property {string} [congestion_control] tuic
  * @property {string} [udp_relay_mode]
  * @property {string|string[]} [alpn]
- * @property {string} [server_name]
+ * @property {string} [server_name] root-level SNI fallback kept for hysteria/tuic compatibility
  * @property {boolean} [insecure]
  * @property {boolean} [disable_sni]
  * @property {number} [up_mbps]
@@ -35,6 +35,8 @@
  * @property {number} [mtu]
  * @property {string|number[]} [reserved]
  * @property {{type?:string, password?:string}} [obfsObj]
+ * @property {boolean} [udp]         udp relay enable
+ * @property {boolean} [tfo]         tcp-fast-open
  * @property {TlsLike} [tls]
  * @property {TransportLike} [transport]
  *
@@ -63,11 +65,15 @@ export const CONVERTIBLE_TYPES = new Set([
   'trojan',
   'shadowsocks',
   'shadowsocksr',
+  'hysteria',
   'hysteria2',
   'tuic',
   'wireguard',
   'socks',
-  'http'
+  'http',
+  'naive',
+  'snell',
+  'ssh'
 ]);
 
 /** Normalize aliases coming from various dialects. */
@@ -76,8 +82,9 @@ export function normalizeType(t) {
   const s = String(t).toLowerCase();
   if (s === 'ss') return 'shadowsocks';
   if (s === 'ssr') return 'shadowsocksr';
+  if (s === 'hy1') return 'hysteria';
   if (s === 'hy2') return 'hysteria2';
-  if (s === 'socks5' || s === 'socks4') return 'socks';
+  if (s === 'socks5' || s === 'socks4' || s === 'socks5-tls') return 'socks';
   if (s === 'wg') return 'wireguard';
   return s;
 }

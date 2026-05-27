@@ -3,8 +3,7 @@
  * Returns one of: 'singbox' | 'mihomo' | 'links' | 'links-sub'
  * Throws when nothing matches.
  */
-
-const LINK_SCHEME = /^(vmess|vless|trojan|ss|ssr|hysteria2?|hy2|tuic|socks5?|http|https|wg):\/\//i;
+import { isShareLink } from './share-link-schemes.js';
 
 export function detect(raw) {
   const text = String(raw || '').trim();
@@ -21,15 +20,15 @@ export function detect(raw) {
   }
 
   // 2) Direct share links (single or multi-line)
-  if (LINK_SCHEME.test(text)) return 'links';
+  if (isShareLink(text)) return 'links';
   const firstNonEmpty = text.split(/\r?\n/).find((l) => l.trim());
-  if (firstNonEmpty && LINK_SCHEME.test(firstNonEmpty.trim())) return 'links';
+  if (firstNonEmpty && isShareLink(firstNonEmpty)) return 'links';
 
   // 3) base64 subscription (whole blob is base64 of newline-joined links)
   if (looksLikeBase64(text)) {
     try {
       const decoded = base64Decode(text);
-      if (decoded && LINK_SCHEME.test(decoded.trim())) return 'links-sub';
+      if (decoded && isShareLink(decoded)) return 'links-sub';
     } catch {
       // fall through
     }

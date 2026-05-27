@@ -3,18 +3,17 @@
  */
 import { base64Decode } from '../detect.js';
 import { CONVERTIBLE_TYPES } from '../model.js';
-
-const SCHEMES = /^(vmess|vless|trojan|ss|ssr|hysteria2|hy2|tuic|socks5?|http|https|wg):\/\//i;
+import { isShareLink, normalizeShareLinkScheme } from '../share-link-schemes.js';
 
 export default function parse(text, opts = {}) {
   const raw = String(text || '').trim();
   let lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
   // base64 订阅：整体能 base64 解码出含链接的多行文本
-  if (opts.subscription || (lines.length === 1 && !SCHEMES.test(lines[0]))) {
+  if (opts.subscription || (lines.length === 1 && !isShareLink(lines[0]))) {
     try {
       const decoded = base64Decode(raw);
-      if (SCHEMES.test(decoded.trim())) {
+      if (isShareLink(decoded)) {
         lines = decoded.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       }
     } catch {
@@ -24,7 +23,7 @@ export default function parse(text, opts = {}) {
 
   const out = [];
   for (const line of lines) {
-    if (!SCHEMES.test(line)) continue;
+    if (!isShareLink(line)) continue;
     try {
       const node = parseOne(line);
       if (node && CONVERTIBLE_TYPES.has(node.type)) out.push(node);
@@ -38,23 +37,31 @@ export default function parse(text, opts = {}) {
 function parseOne(link) {
   const m = link.match(/^([a-zA-Z0-9]+):\/\/(.*)$/s);
   if (!m) return null;
-  const scheme = m[1].toLowerCase();
+  const scheme = normalizeShareLinkScheme(m[1]);
   const body = m[2];
 
   switch (scheme) {
     case 'vmess': return parseVmess(body);
-    case 'vless': return parseStdLink('vless', link);
-    case 'trojan': return parseStdLink('trojan', link);
-    case 'ss': return parseSS(link);
-    case 'ssr': return parseSSR(body);
+    case 'vless':
+    case 'trojan':
     case 'hysteria2':
-    case 'hy2': return parseStdLink('hysteria2', link);
-    case 'tuic': return parseStdLink('tuic', link);
-    case 'socks5':
-    case 'socks': return parseStdLink('socks', link);
+    case 'tuic':
+    case 'socks':
     case 'http':
-    case 'https': return parseStdLink('http', link);
-    case 'wg': return parseStdLink('wireguard', link);
+    case 'wireguard':
+      return parseStdLink(scheme, link);
+    case 'hysteria':
+      return parseStdLink('hysteria', link);
+    case 'naive':
+      return parseStdLink('naive', link);
+    case 'snell':
+      return parseStdLink('snell', link);
+    case 'ssh':
+      return parseStdLink('ssh', link);
+    case 'socks5-tls':
+      return parseStdLink('socks', link, { tls: true });
+    case 'shadowsocks': return parseSS(link);
+    case 'shadowsocksr': return parseSSR(body);
     default: return null;
   }
 }
@@ -77,10 +84,17 @@ function parseVmess(body) {
     node.tls = {
       enabled: true,
       server_name: v.sni || v.host || '',
-      insecure: false
+      insecure: v.allowInsecure === '1' || v.allowInsecure === 'true' || v.allowinsecure === '1' || v.allowinsecure === 'true'
     };
     if (v.alpn) node.tls.alpn = String(v.alpn).split(',').filter(Boolean);
     if (v.fp) node.tls.utls = { fingerprint: v.fp };
+    if (v.tls === 'reality') {
+      node.tls.reality = {
+        enabled: true,
+        public_key: v.pbk || v.public_key || '',
+        short_id: v.sid || v.short_id || ''
+      };
+    }
   }
   if (net !== 'tcp') {
     if (net === 'ws') node.transport = { type: 'ws', host: v.host || '', path: v.path || '/' };
@@ -91,7 +105,7 @@ function parseVmess(body) {
   return node;
 }
 
-function parseStdLink(type, link) {
+function parseStdLink(type, link, opts = {}) {
   const { url, fragment } = splitFragment(link);
   let u;
   try {
@@ -100,7 +114,7 @@ function parseStdLink(type, link) {
     u = new URL(url.replace(/[\s]/g, ''));
   }
   const q = Object.fromEntries(u.searchParams.entries());
-  const host = decodeURIComponent(u.hostname);
+  const host = normalizeHost(u.hostname);
   const port = u.port ? Number(u.port) : undefined;
   const userInfo = decodeURIComponent(u.username || '');
   const userPass = decodeURIComponent(u.password || '');
@@ -125,11 +139,20 @@ function parseStdLink(type, link) {
   } else if (type === 'hysteria2') {
     node.password = userInfo;
     if (q.sni) node.server_name = q.sni;
-    if (q.insecure === '1' || q.insecure === 'true') node.insecure = true;
+    if (q.insecure === '1' || q.insecure === 'true' || q.allowinsecure === '1' || q.allow_insecure === '1') node.insecure = true;
     if (q.obfs) node.obfsObj = { type: q.obfs, password: q['obfs-password'] };
     if (q.alpn) node.alpn = q.alpn.split(',');
-    if (q.upmbps) node.up_mbps = Number(q.upmbps);
-    if (q.downmbps) node.down_mbps = Number(q.downmbps);
+    if (q.upmbps) node.up_mbps = parseMbps(q.upmbps);
+    if (q.downmbps) node.down_mbps = parseMbps(q.downmbps);
+    node.tls = { enabled: true, server_name: q.sni, insecure: !!node.insecure };
+  } else if (type === 'hysteria') {
+    node.password = q.auth || userInfo;
+    if (q.sni) node.server_name = q.sni;
+    if (q.insecure === '1' || q.insecure === 'true' || q.allowinsecure === '1') node.insecure = true;
+    if (q.obfs) node.obfsObj = { type: q.obfs, password: q['obfs-password'] };
+    if (q.alpn) node.alpn = q.alpn.split(',');
+    if (q.upmbps) node.up_mbps = parseMbps(q.upmbps);
+    if (q.downmbps) node.down_mbps = parseMbps(q.downmbps);
     node.tls = { enabled: true, server_name: q.sni, insecure: !!node.insecure };
   } else if (type === 'tuic') {
     node.uuid = userInfo;
@@ -137,14 +160,39 @@ function parseStdLink(type, link) {
     if (q.congestion_control) node.congestion_control = q.congestion_control;
     if (q.udp_relay_mode) node.udp_relay_mode = q.udp_relay_mode;
     if (q.sni) node.server_name = q.sni;
-    if (q.allow_insecure === '1' || q.allow_insecure === 'true') node.insecure = true;
+    if (q.allow_insecure === '1' || q.allow_insecure === 'true' || q.allowinsecure === '1' || q.insecure === '1') node.insecure = true;
     if (q.disable_sni === '1' || q.disable_sni === 'true') node.disable_sni = true;
     if (q.alpn) node.alpn = q.alpn.split(',');
     node.tls = { enabled: true, server_name: q.sni, insecure: !!node.insecure };
+  } else if (type === 'naive') {
+    if (userInfo) node.username = userInfo;
+    if (userPass) node.password = userPass;
+    node.tls = { enabled: true };
+    if (q.sni) node.tls.server_name = q.sni;
+    if (q.insecure === '1' || q.insecure === 'true') node.tls.insecure = true;
+    if (q.alpn) node.tls.alpn = q.alpn.split(',');
+  } else if (type === 'snell') {
+    if (q.psk) node.password = q.psk;
+    if (q.obfs) node.obfs = q.obfs;
+    if (q['obfs-opts']) {
+      try {
+        const obfsOpts = JSON.parse(q['obfs-opts']);
+        node.obfs = obfsOpts.type || q.obfs;
+        node.obfs_param = JSON.stringify(obfsOpts);
+      } catch {
+        node.obfs_param = q['obfs-opts'];
+      }
+    }
+    if (q.version) node.version = String(q.version);
+  } else if (type === 'ssh') {
+    if (userInfo) node.username = userInfo;
+    if (userPass) node.password = userPass;
+    if (q.private_key) node.private_key = q.private_key;
   } else if (type === 'socks') {
     if (userInfo) node.username = userInfo;
     if (userPass) node.password = userPass;
     node.version = link.toLowerCase().startsWith('socks4') ? '4' : '5';
+    if (opts.tls) node.tls = { enabled: true };
   } else if (type === 'http') {
     if (userInfo) node.username = userInfo;
     if (userPass) node.password = userPass;
@@ -248,10 +296,14 @@ function parseSS(fullLink) {
 
 function parseSSR(body) {
   const decoded = base64Decode(body);
-  const [main, query = ''] = decoded.split('/?');
+  const qIdx = decoded.indexOf('/?');
+  const main = qIdx >= 0 ? decoded.slice(0, qIdx) : decoded;
+  const query = qIdx >= 0 ? decoded.slice(qIdx + 2) : '';
   const parts = main.split(':');
   if (parts.length < 6) throw new Error('ssr 链接格式不正确');
-  const [server, port, protocol, method, obfs, passB64] = parts;
+  const server = normalizeHost(parts.slice(0, -5).join(':'));
+  const [port, protocol, method, obfs, passB64] = parts.slice(-5);
+  if (!server) throw new Error('ssr 链接格式不正确');
   const params = new URLSearchParams(query);
   return {
     tag: tryB64Decode(params.get('remarks') || ''),
@@ -277,7 +329,37 @@ function tryB64Decode(s) {
 }
 
 function splitHostPort(s) {
-  const i = s.lastIndexOf(':');
-  if (i < 0) return [s, undefined];
-  return [s.slice(0, i), Number(s.slice(i + 1)) || s.slice(i + 1)];
+  const value = String(s || '');
+  if (!value) return ['', undefined];
+  if (value.startsWith('[')) {
+    const end = value.indexOf(']');
+    if (end > 0) {
+      const host = value.slice(1, end);
+      const rawPort = value.slice(end + 2);
+      if (value.charAt(end + 1) === ':' && rawPort) {
+        return [host, Number(rawPort) || rawPort];
+      }
+      return [host, undefined];
+    }
+  }
+  const i = value.lastIndexOf(':');
+  if (i < 0) return [normalizeHost(value), undefined];
+  const rawPort = value.slice(i + 1);
+  if (value.indexOf(':') !== i && rawPort && !/^\d+$/.test(rawPort)) {
+    return [normalizeHost(value), undefined];
+  }
+  return [normalizeHost(value.slice(0, i)), Number(rawPort) || rawPort];
+}
+
+function parseMbps(s) {
+  const m = String(s).match(/(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : undefined;
+}
+
+function normalizeHost(host) {
+  const value = String(host || '');
+  if (value.startsWith('[') && value.endsWith(']')) {
+    return value.slice(1, -1);
+  }
+  return value;
 }

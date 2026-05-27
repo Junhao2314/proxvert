@@ -69,6 +69,17 @@ function fromMihomo(p) {
       node.obfs_param = p['obfs-param'];
       break;
 
+    case 'hysteria':
+      node.password = p.password;
+      node.server_name = p.sni;
+      if (p['skip-cert-verify']) node.insecure = true;
+      if (p.up) node.up_mbps = parseMbps(p.up);
+      if (p.down) node.down_mbps = parseMbps(p.down);
+      if (p.obfs) node.obfsObj = { type: p.obfs, password: p['obfs-password'] };
+      if (p.alpn) node.alpn = p.alpn;
+      node.tls = { enabled: true, server_name: p.sni, insecure: !!p['skip-cert-verify'] };
+      break;
+
     case 'hysteria2':
       node.password = p.password;
       node.server_name = p.sni;
@@ -105,12 +116,32 @@ function fromMihomo(p) {
       node.version = '5';
       if (p.username) node.username = p.username;
       if (p.password) node.password = p.password;
+      if (p.tls) node.tls = buildTls(p);
       break;
 
     case 'http':
       if (p.username) node.username = p.username;
       if (p.password) node.password = p.password;
       if (p.tls) node.tls = { enabled: true };
+      break;
+
+    case 'naive':
+      if (p.username) node.username = p.username;
+      if (p.password) node.password = p.password;
+      node.tls = buildTls(p, true);
+      break;
+
+    case 'snell':
+      if (p.psk) node.password = p.psk;
+      if (p.obfs) node.obfs = p.obfs;
+      if (p['obfs-opts']) node.obfs_param = JSON.stringify(p['obfs-opts']);
+      if (p.version) node.version = String(p.version);
+      break;
+
+    case 'ssh':
+      if (p.username) node.username = p.username;
+      if (p.password) node.password = p.password;
+      if (p['private-key']) node.private_key = p['private-key'];
       break;
   }
 
@@ -119,6 +150,9 @@ function fromMihomo(p) {
     node.tls.utls = { fingerprint: p['client-fingerprint'] };
     if (!('enabled' in node.tls)) node.tls.enabled = true;
   }
+
+  if (p.udp) node.udp = true;
+  if (p.tfo) node.tfo = true;
 
   return node;
 }

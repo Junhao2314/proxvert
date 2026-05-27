@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-1. **proxvert is a small, focused, pure-frontend converter** (~1.9k LOC, 8 JS files) that round-trips between three proxy-config formats: Mihomo (Clash.Meta) YAML, sing-box JSON, and a family of share-link URIs (`vmess`/`vless`/`trojan`/`ss`/`ssr`/`hysteria2`/`tuic`/`wg`/`socks`/`http`). It also auto-detects base64-encoded subscriptions.
+1. **proxvert is a small, focused, pure-frontend converter** (~1.9k LOC, 9 JS files) that round-trips between three proxy-config formats: Mihomo (Clash.Meta) YAML, sing-box JSON, and a family of share-link URIs (`vmess`/`vless`/`trojan`/`ss`/`ssr`/`hysteria2`/`tuic`/`wg`/`wireguard`/`socks`/`socks4`/`socks5`/`http`/`https`). It also auto-detects base64-encoded subscriptions.
 2. **The architecture is hub-and-spoke**: a single `NormalizedNode` shape (`src/core/model.js`) sits at the center, with three parsers (`links → mihomo → singbox`) feeding it and three symmetric serializers consuming it. Adding a new format means writing exactly one parser + one serializer.
 3. **The internal model deliberately mirrors sing-box outbound shape**, so `parsers/singbox.js` (21 LOC) and `serializers/singbox.js` (14 LOC) are near-passthroughs — they just filter on `CONVERTIBLE_TYPES` and `clean()` empty fields.
 4. **Dispatch is data-driven**: `main.js` keeps two flat lookup tables (`parsers`, `serializers`) keyed by format name. The UI is a single `convert()` function (`src/main.js:85`) that wires `detect → parsers[src] → serializers[target]`.
@@ -79,6 +79,7 @@ graph LR
     CSS["src/style.css"]
     MAIN["src/main.js"]
     DETECT["core/detect.js"]
+    SCHEMES["core/share-link-schemes.js"]
     MODEL["core/model.js"]
     PLINKS["parsers/links.js"]
     PMIHOMO["parsers/mihomo.js"]
@@ -91,7 +92,9 @@ graph LR
     HTML -->|"&lt;script type=module&gt;"| MAIN
     HTML -->|"&lt;link rel=stylesheet&gt;"| CSS
     MAIN --> DETECT
+    DETECT --> SCHEMES
     MAIN --> PLINKS
+    PLINKS --> SCHEMES
     MAIN --> PMIHOMO
     MAIN --> PSING
     MAIN --> SLINKS
@@ -109,7 +112,8 @@ graph LR
 Key observations:
 
 - **`core/model.js` has zero internal dependencies** — pure data + two helpers. Anything else can import from it without creating cycles.
-- **`detect.js` exports `base64Decode`** (`src/core/detect.js:62`), which `parsers/links.js` re-uses for subscription decoding (`src/core/parsers/links.js:4`). This is the only cross-module utility share inside `core/`.
+- **Share-link alias matching is centralized** in `src/core/share-link-schemes.js:1-31`; `detect.js`, `split-links.js`, and `parsers/links.js` all consume the same alias table, so support for `wireguard://`, `socks4://`, `socks5://`, `https://`, and `hy2://` no longer drifts between detection, splitting, and parsing.
+- **`detect.js` still exports `base64Decode`** (`src/core/detect.js:61`), which `parsers/links.js` re-uses for subscription decoding and SS/SSR parsing (`src/core/parsers/links.js:4`, `src/core/parsers/links.js:200`).
 - **`js-yaml` is the lone external dependency at runtime**; only `mihomo` parser/serializer touch it. sing-box uses native `JSON.parse`/`JSON.stringify`.
 
 ### 2.2 Layers
@@ -178,14 +182,35 @@ Every failure mode funnels into one `showError` path (`src/main.js:129`), which 
 | # | Test | Returns | Where |
 |---|------|---------|-------|
 | 1 | `text.startsWith('{' \| '[')` then `JSON.parse` then `looksLikeSingbox(obj)` | `'singbox'` | `src/core/detect.js:14` |
-| 2 | First non-empty line matches `LINK_SCHEME` regex | `'links'` | `src/core/detect.js:24` |
-| 3 | Whole-blob base64 decodes to text whose first line matches `LINK_SCHEME` | `'links-sub'` | `src/core/detect.js:29` |
+| 2 | First non-empty line passes `isShareLink(text)` | `'links'` | `src/core/detect.js:23` |
+| 3 | Whole-blob base64 decodes to text whose first line passes `isShareLink(text)` | `'links-sub'` | `src/core/detect.js:28` |
 | 4 | YAML has top-level `proxies:` or starts with `- name:` | `'mihomo'` | `src/core/detect.js:39` |
 | 5 | Otherwise | throws | `src/core/detect.js:43` |
 
-### 3.1 The scheme regex
+### 3.1 Shared share-link alias table
 
-`LINK_SCHEME = /^(vmess|vless|trojan|ss|ssr|hysteria2?|hy2|tuic|socks5?|http|https|wg):\/\//i` (`src/core/detect.js:7`). Note `hysteria2?` covers both `hysteria` and `hysteria2`, and `socks5?` covers `socks`/`socks5`. `https://` is accepted because plain HTTP proxies use it for the TLS variant.
+`src/core/share-link-schemes.js:1-31` is now the single source of truth for URI-scheme aliases. It exports:
+
+- `isShareLink(value)` — shared detection predicate used by `detect.js`, `split-links.js`, and `parsers/links.js`
+- `normalizeShareLinkScheme(value)` — collapses alias schemes to canonical parser dispatch keys
+- `SHARE_LINK_SCHEME_RE` / `SHARE_LINK_SPLIT_RE` — the reusable regexes derived from the alias table
+
+Current mapping:
+
+| Input scheme | Canonical dispatch |
+|--------------|--------------------|
+| `vmess` | `vmess` |
+| `vless` | `vless` |
+| `trojan` | `trojan` |
+| `ss` | `shadowsocks` |
+| `ssr` | `shadowsocksr` |
+| `hysteria2`, `hy2` | `hysteria2` |
+| `tuic` | `tuic` |
+| `socks`, `socks4`, `socks5` | `socks` |
+| `http`, `https` | `http` |
+| `wg`, `wireguard` | `wireguard` |
+
+Notably, `hysteria://` (v1) is **not** present in the table, so it is intentionally rejected during detection instead of being misclassified as a convertible Hysteria2 link.
 
 ### 3.2 `looksLikeSingbox` heuristic
 
@@ -198,16 +223,16 @@ This is permissive on purpose — sing-box JSON can be a single outbound, an arr
 
 ### 3.3 base64 subscription decoding
 
-`looksLikeBase64()` (`src/core/detect.js:56`) is intentionally loose: any string of `[A-Za-z0-9+/=_-]+` ≥ 16 chars after whitespace strip. The real validation is **decoded content matches `LINK_SCHEME`** at line 32 — so false positives here are safe; they just fail the inner regex.
+`looksLikeBase64()` (`src/core/detect.js:55`) is intentionally loose: any string of `[A-Za-z0-9+/=_-]+` ≥ 16 chars after whitespace strip. The real validation is **decoded content passes `isShareLink()`** at line 31 — so false positives here are safe; they just fail the inner predicate.
 
-> **Design note:** the looseness of `looksLikeBase64` is by design, not a defect. The outer heuristic exists only to *avoid trying `atob` on input that obviously isn't base64*. The actual decision — "yes, this is a subscription" — is gated on the *decoded* prefix matching `LINK_SCHEME`, which is the only thing that matters for correctness. A character-class-only check would be unsafe; a stricter outer check would just shift work without adding safety.
+> **Design note:** the looseness of `looksLikeBase64` is by design, not a defect. The outer heuristic exists only to *avoid trying `atob` on input that obviously isn't base64*. The actual decision — "yes, this is a subscription" — is gated on the *decoded* prefix passing `isShareLink()`, which is the only thing that matters for correctness. A character-class-only check would be unsafe; a stricter outer check would just shift work without adding safety.
 
-`base64Decode()` (`src/core/detect.js:62`) handles three real-world quirks:
+`base64Decode()` (`src/core/detect.js:61`) handles three real-world quirks:
 - URL-safe alphabet (`-_` → `+/`)
 - Missing padding (re-pads to a multiple of 4)
 - UTF-8 content (uses the legacy `decodeURIComponent(escape(...))` trick after `atob`)
 
-This function is re-exported and used by `parsers/links.js` for both `links-sub` mode and Shadowsocks `ss://base64(method:password)@…` URIs (`src/core/parsers/links.js:215`).
+This function is re-exported and used by `parsers/links.js` for both `links-sub` mode and Shadowsocks `ss://base64(method:password)@…` URIs (`src/core/parsers/links.js:212`).
 
 ---
 
@@ -253,7 +278,7 @@ new Set([
 ```
 (`src/core/model.js:60`) — the gate every parser runs each candidate through; anything else is silently dropped (`parsers/links.js:30`, `parsers/mihomo.js:14`, `parsers/singbox.js:12`).
 
-### 4.3 `normalizeType(t)` — alias collapsing
+### 4.3 `normalizeType(t)` — config-dialect alias collapsing
 
 `src/core/model.js:74`:
 
@@ -266,7 +291,9 @@ new Set([
 | `wg` | `wireguard` |
 | anything else | lowercased as-is |
 
-This is the **single seam where dialect names become canonical names**. It's called by `parsers/mihomo.js:19` and `parsers/singbox.js:11`. (`parsers/links.js` imports it but doesn't currently use it — see §8.)
+This is the seam where **Mihomo / sing-box type names** become canonical names. It's called by `parsers/mihomo.js:19` and `parsers/singbox.js:11`.
+
+Share-link URI aliases are handled separately by `normalizeShareLinkScheme()` in `src/core/share-link-schemes.js:30`, so the model layer no longer has to double as a URI-scheme registry.
 
 ### 4.4 `clean(obj)` — empty-field pruning
 
@@ -289,33 +316,33 @@ It's used by `serializers/singbox.js:9` to keep the JSON output tidy (no `"flow"
 | Mihomo YAML    | `parsers/mihomo.js`       | `serializers/mihomo.js`        |
 | sing-box JSON  | `parsers/singbox.js`      | `serializers/singbox.js`       |
 
-### 5.2 Share-link parser (`parsers/links.js`, 283 LOC — largest file)
+### 5.2 Share-link parser (`parsers/links.js`, 287 LOC — largest file)
 
-`parse(text, opts)` first decides whether the input is a base64 subscription (`src/core/parsers/links.js:14`): if `opts.subscription` is set, **or** the input is a single line that doesn't start with a known scheme, it tries base64-decoding the whole blob. Then every line that starts with a known scheme is fed to `parseOne()` (`src/core/parsers/links.js:38`), which dispatches on the URI scheme:
+`parse(text, opts)` first decides whether the input is a base64 subscription (`src/core/parsers/links.js:12`): if `opts.subscription` is set, **or** the input is a single line that doesn't pass `isShareLink()`, it tries base64-decoding the whole blob. Then every line that passes `isShareLink()` is fed to `parseOne()` (`src/core/parsers/links.js:37`), which first normalizes the URI scheme via `normalizeShareLinkScheme()` and then dispatches on the canonical key:
 
 | Scheme(s) | Handler | File line |
 |-----------|---------|-----------|
-| `vmess://` | `parseVmess` (base64-decoded JSON body) | `src/core/parsers/links.js:62` |
-| `vless://` | `parseStdLink('vless', …)` | `src/core/parsers/links.js:46` |
-| `trojan://` | `parseStdLink('trojan', …)` | `src/core/parsers/links.js:47` |
-| `ss://` | `parseSS` (handles both base64-userinfo and plain-userinfo variants) | `src/core/parsers/links.js:203` |
-| `ssr://` | `parseSSR` (whole-body base64, colon-delimited fields, base64 sub-fields) | `src/core/parsers/links.js:249` |
-| `hysteria2://`, `hy2://` | `parseStdLink('hysteria2', …)` | `src/core/parsers/links.js:50-51` |
-| `tuic://` | `parseStdLink('tuic', …)` | `src/core/parsers/links.js:52` |
-| `socks://`, `socks5://` | `parseStdLink('socks', …)` (sniffs `socks4` from string) | `src/core/parsers/links.js:53-54`, `:147` |
-| `http://`, `https://` | `parseStdLink('http', …)` (TLS flag set from `https`) | `src/core/parsers/links.js:55-56`, `:151` |
-| `wg://` | `parseStdLink('wireguard', …)` | `src/core/parsers/links.js:57` |
+| `vmess://` | `parseVmess` (base64-decoded JSON body) | `src/core/parsers/links.js:59` |
+| `vless://` | `parseStdLink('vless', …)` | `src/core/parsers/links.js:45-52` |
+| `trojan://` | `parseStdLink('trojan', …)` | `src/core/parsers/links.js:45-52` |
+| `ss://` | `parseSS` (handles both base64-userinfo and plain-userinfo variants) | `src/core/parsers/links.js:200` |
+| `ssr://` | `parseSSR` (whole-body base64, colon-delimited fields, base64 sub-fields) | `src/core/parsers/links.js:246` |
+| `hysteria2://`, `hy2://` | `parseStdLink('hysteria2', …)` | `src/core/parsers/links.js:47-52` |
+| `tuic://` | `parseStdLink('tuic', …)` | `src/core/parsers/links.js:48-52` |
+| `socks://`, `socks4://`, `socks5://` | `parseStdLink('socks', …)` (preserves version 4/5 from original scheme) | `src/core/parsers/links.js:49-52`, `src/core/parsers/links.js:141-144` |
+| `http://`, `https://` | `parseStdLink('http', …)` (TLS flag set from `https`) | `src/core/parsers/links.js:50-52`, `src/core/parsers/links.js:145-148` |
+| `wg://`, `wireguard://` | `parseStdLink('wireguard', …)` | `src/core/parsers/links.js:51-52` |
 
-`parseStdLink()` (`src/core/parsers/links.js:94`) is the generic URL-shape handler. It uses the browser-native `new URL(url)`, splits off the `#fragment` for `tag`, and reads everything else from `searchParams`. Two helper sub-functions hang off it:
+`parseStdLink()` (`src/core/parsers/links.js:91`) is the generic URL-shape handler. It uses the browser-native `new URL(url)`, splits off the `#fragment` for `tag`, and reads everything else from `searchParams`. Two helper sub-functions hang off it:
 
-- `applyTransportQuery()` (`:173`) — reads `type`, `host`, `path`, `serviceName`, `mode`, `eh`, `ed`, `method` query params and builds `node.transport`.
-- `applyTlsQuery()` (`:189`) — reads `security`, `sni`, `alpn`, `fp`, `allowInsecure`, plus `security=reality` → `pbk`/`sid`, and builds `node.tls`.
+- `applyTransportQuery()` (`:170`) — reads `type`, `host`, `path`, `serviceName`, `mode`, `eh`, `ed`, `method` query params and builds `node.transport`.
+- `applyTlsQuery()` (`:186`) — reads `security`, `sni`, `alpn`, `fp`, `allowInsecure`, plus `security=reality` → `pbk`/`sid`, and builds `node.tls`.
 
 **`parseVmess` quirk**: VMess shares are `vmess://base64(json)` — body is decoded then JSON-parsed. Field renames the conversion handles: `v.add`→`server`, `v.id`→`uuid`, `v.aid`→`alter_id`, `v.scy`→`security`, `v.net`→`transport.type`, `v.tls === 'tls' || 'reality'`→`tls.enabled` (`src/core/parsers/links.js:62-92`).
 
-**`parseSS` is the trickiest** (`src/core/parsers/links.js:203`): the SIP002 format has two encodings — `ss://base64(method:password)@host:port#tag` (modern) and `ss://base64(method:password@host:port)#tag` (legacy). The parser checks for `@` in the body; if present, the userinfo half may itself be base64 or plain percent-encoded; if absent, the whole post-scheme body is base64-then-split.
+**`parseSS` is the trickiest** (`src/core/parsers/links.js:200`): the SIP002 format has two encodings — `ss://base64(method:password)@host:port#tag` (modern) and `ss://base64(method:password@host:port)#tag` (legacy). The parser checks for `@` in the body; if present, the userinfo half may itself be base64 or plain percent-encoded; if absent, the whole post-scheme body is base64-then-split.
 
-**`parseSSR`** (`src/core/parsers/links.js:249`) is whole-body base64, then colon-separated `server:port:protocol:method:obfs:base64(password)/?params`, with `remarks`/`obfsparam`/`protoparam` themselves base64 inside the query string.
+**`parseSSR`** (`src/core/parsers/links.js:246`) is whole-body base64, then colon-separated `server:port:protocol:method:obfs:base64(password)/?params`, with `remarks`/`obfsparam`/`protoparam` themselves base64 inside the query string.
 
 ### 5.3 Share-link serializer (`serializers/links.js`, 223 LOC)
 
@@ -473,17 +500,15 @@ These are **specific to this codebase**, not generic advice.
 
 ### 8.1 Recommended fixes
 
-- **Dropped unused import** in `src/core/parsers/links.js:5` *(applied 2026-05-20)*. The file previously imported `normalizeType` alongside `CONVERTIBLE_TYPES`, but `normalizeType` was never called — every `node.type` assignment in the file uses a canonical literal (`'vmess'`, `'shadowsocks'`, `'wireguard'`, etc.). The other two parsers (`mihomo.js:19`, `singbox.js:11`) genuinely need it; this one didn't.
+- **Centralized share-link alias matching** *(applied 2026-05-27)*. `detect.js`, `split-links.js`, and `parsers/links.js` used to maintain separate regex fragments, which let support drift at the edges. The new `src/core/share-link-schemes.js` makes alias handling explicit and shared, so `wireguard://` / `socks4://` are accepted everywhere while `hysteria://` (v1) is rejected consistently.
 
-  Applied patch:
-  ```diff
-  -import { CONVERTIBLE_TYPES, normalizeType } from '../model.js';
-  +import { CONVERTIBLE_TYPES } from '../model.js';
-  ```
+  Current state:
+  - `src/core/share-link-schemes.js:1-31` holds the alias table
+  - `src/core/detect.js:6` imports `isShareLink`
+  - `src/core/split-links.js:4` imports `SHARE_LINK_SPLIT_RE` and `isShareLink`
+  - `src/core/parsers/links.js:6` imports `isShareLink` and `normalizeShareLinkScheme`
 
-  Current state: `src/core/parsers/links.js:5` reads `import { CONVERTIBLE_TYPES } from '../model.js';` and `grep normalizeType src/core/parsers/links.js` returns no matches. No runtime impact — the change just removes an inconsistency between the three parsers.
-
-- **`looksLikeBase64` is intentionally permissive** (`src/core/detect.js:56`). See the design note in §3.3 — this isn't a defect; the safety net is on the decoded prefix, not the outer character-class. No fix needed; documented here so future maintainers don't "tighten" it and break legitimate subscription input.
+- **`looksLikeBase64` is intentionally permissive** (`src/core/detect.js:55`). See the design note in §3.3 — this isn't a defect; the safety net is on the decoded prefix, not the outer character-class. No fix needed; documented here so future maintainers don't "tighten" it and break legitimate subscription input.
 
 ### 8.2 Round-trip caveats
 
@@ -491,8 +516,8 @@ Moved to §6.5 (Round-Trip Fidelity) — that's where they're most useful, next 
 
 ### 8.3 Project hygiene
 
-- **README.md has one line** (`# proxvert`). The HTML hero/eyebrow/feature copy in `index.html:65-116` is the de facto documentation. Worth promoting some of that into README so the GitHub landing page communicates the value prop.
-- **No tests.** A small round-trip test (load fixture → parse → serialize → re-parse → compare) per format would lock in current behavior. With ~10 protocols × 3 formats this is a tractable test surface.
+- **README now documents the alias matrix**, but it should continue to mirror `src/core/share-link-schemes.js` instead of hand-maintaining prose-only examples. When adding or removing a scheme alias, update both together.
+- **Core tests exist now** (`test/conversion.test.js`, `test/history.test.js`). When expanding share-link alias coverage, add one detection + split + parse regression so the three call sites keep moving together.
 - **No linter / formatter** configured. Style is already consistent, but a one-line `eslint:recommended` would catch dead imports like §8.1.
 - **Clipboard fallback uses `document.execCommand('copy')`** (`src/main.js:73`). Deprecated; still works. Not urgent — most users hit it from HTTPS and get the modern path.
 
@@ -506,6 +531,8 @@ To add a fourth format `X`:
 5. Wire both into `parsers` / `serializers` tables in `src/main.js:9` & `:16`.
 6. Add a detection branch in `src/core/detect.js` (before the throw at line 43).
 7. Add a radio option in `index.html` near line 121-132 and a label in `FORMAT_LABEL` (`src/main.js:22`).
+
+If the new format adds or changes a **share-link URI alias**, also update `src/core/share-link-schemes.js` so detection, splitting, and parsing continue to share one alias registry.
 
 The model is field-bag-style by design — adding a new protocol property to `NormalizedNode` is a doc change in `model.js:5-58` plus reads/writes in the relevant parser/serializer pairs.
 

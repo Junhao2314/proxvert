@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端,节点数据不离开浏览器" />
     <title>proxvert · 代理配置格式互转</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="/src/style.css" />
     <script>
       // 防主题闪烁:DOM 解析阶段就写上 data-theme
@@ -41,9 +35,9 @@
           <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <defs>
               <linearGradient id="brandG" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#6366F1" />
-                <stop offset="50%" stop-color="#8B5CF6" />
-                <stop offset="100%" stop-color="#EC4899" />
+                <stop offset="0%" stop-color="#F59E0B" />
+                <stop offset="52%" stop-color="#22D3EE" />
+                <stop offset="100%" stop-color="#BEF264" />
               </linearGradient>
             </defs>
             <path
@@ -75,7 +69,7 @@
           </button>
           <a
             class="nav-link"
-            href="https://github.com/"
+            href="https://github.com/junhao2314/proxvert"
             target="_blank"
             rel="noopener"
             aria-label="GitHub"
@@ -93,18 +87,45 @@
 
     <main class="app">
       <section class="hero">
-        <span class="eyebrow">
-          <span class="eyebrow-dot"></span>
-          纯前端 · 数据不离开浏览器
-        </span>
-        <h1 class="hero-title">
-          代理配置
-          <span class="grad-text">无损互转</span>
-        </h1>
-        <p class="hero-sub">
-          一键在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与 <em>vmess/vless/trojan/ss/ssr/hy2/tuic/wg</em> 分享链接之间转换,
-          支持 base64 订阅与二维码导出,自动识别输入格式。
-        </p>
+        <div class="hero-copy">
+          <span class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            纯前端 · 数据不离开浏览器
+          </span>
+          <h1 class="hero-title">
+            代理配置
+            <span class="grad-text">无损互转</span>
+          </h1>
+          <p class="hero-sub">
+            在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与分享链接之间互转,
+            支持 base64 订阅与二维码导出。
+          </p>
+          <div class="hero-pills" aria-label="能力摘要">
+            <span>Auto detect</span>
+            <span>Multi protocol</span>
+            <span>QR export</span>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orbit-ring"></div>
+          <div class="format-node node-a">
+            <span>Mihomo</span>
+            <strong>YAML</strong>
+          </div>
+          <div class="format-node node-b">
+            <span>sing-box</span>
+            <strong>JSON</strong>
+          </div>
+          <div class="format-node node-c">
+            <span>Share</span>
+            <strong>Links</strong>
+          </div>
+          <div class="orbit-core">
+            <span>local</span>
+            <strong>3-way</strong>
+            <span>bridge</span>
+          </div>
+        </div>
       </section>
 
       <section class="features" aria-label="特性">
@@ -139,7 +160,34 @@
           </div>
           <div>
             <div class="feat-title">多协议</div>
-            <div class="feat-desc">vmess · vless · trojan · ss/ssr · hy2 · tuic · wg</div>
+            <div class="feat-desc">vmess · vless · trojan · ss/ssr · hy1/hy2 · tuic · wg · naive · snell · ssh</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow-board card" aria-label="转换路径">
+        <div class="flow-copy">
+          <span class="section-kicker">CONVERSION RAIL</span>
+          <h2>把格式差异收敛到一条本地路径</h2>
+          <p>先自动识别输入，再规范化为统一节点模型，最后输出成目标格式；深浅主题使用独立文字 token，避免装饰色直接承担正文阅读。</p>
+        </div>
+        <div class="flow-steps" aria-hidden="true">
+          <div class="flow-step">
+            <span>01</span>
+            <strong>Detect</strong>
+            <em>识别来源</em>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-step">
+            <span>02</span>
+            <strong>Normalize</strong>
+            <em>统一节点</em>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-step">
+            <span>03</span>
+            <strong>Serialize</strong>
+            <em>输出目标</em>
           </div>
         </div>
       </section>
@@ -189,7 +237,7 @@
           </span>
         </summary>
         <div id="history-list" class="history-list" data-empty="true">
-          <div class="history-empty">暂无记录 · 完成转换后会自动保存,最多保留 10 条</div>
+          <div class="history-empty">暂无记录，本次会话自动保存</div>
         </div>
       </details>
 
@@ -197,7 +245,7 @@
         <section class="pane card">
           <div class="pane-head">
             <span class="pane-title">
-              <span class="pane-dot" style="background: #6366F1"></span>
+              <span class="pane-dot" style="background: var(--accent)"></span>
               输入(自动识别)
             </span>
             <span class="pane-meta">
@@ -208,7 +256,7 @@
           <textarea
             id="input"
             spellcheck="false"
-            placeholder="粘贴 sing-box JSON、Mihomo YAML、或 vmess:// vless:// trojan:// ss:// ssr:// hysteria2:// tuic:// wg:// 链接,也支持 base64 订阅。多节点可用 换行 / 空行 / 逗号 / 分号 分隔。"
+            placeholder="粘贴 sing-box JSON、Mihomo YAML 或分享链接，多节点用换行/空行/逗号/分号分隔。"
           ></textarea>
         </section>
 
@@ -246,15 +294,15 @@
               <textarea id="output" spellcheck="false" readonly placeholder="转换结果将显示在这里…"></textarea>
             </div>
             <div class="tab-panel" data-tab="sub">
-              <textarea id="output-sub" spellcheck="false" readonly placeholder="base64 订阅文本(仅在目标为「分享链接」时可用)"></textarea>
+              <textarea id="output-sub" spellcheck="false" readonly placeholder="base64 订阅文本"></textarea>
               <div class="sub-meta">
                 <span id="sub-size" class="hint"></span>
-                <span class="sub-tip">可直接作为 Shadowrocket / Clash 订阅 URL 中 base64 形式的内容使用</span>
+                <span class="sub-tip">可用作 Shadowrocket / Clash 订阅内容</span>
               </div>
             </div>
             <div class="tab-panel" data-tab="qr">
-              <div id="qr-grid" class="qr-grid" data-empty="true">
-                <div class="qr-empty">仅在目标为「分享链接」时生成二维码 · 每节点一张 + 全部聚合订阅一张</div>
+              <div id="qr-viewer" class="qr-viewer" data-empty="true">
+                <div class="qr-empty">仅在目标为「分享链接」时生成二维码</div>
               </div>
             </div>
           </div>
@@ -270,7 +318,7 @@
         <span class="ftr-sep">·</span>
         <span>纯前端 · 节点数据不会离开浏览器</span>
         <span class="ftr-sep">·</span>
-        <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/junhao2314/proxvert" target="_blank" rel="noopener">GitHub</a>
       </div>
     </footer>
 

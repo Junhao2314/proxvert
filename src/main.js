@@ -12,6 +12,14 @@ import { toDataURL, QR_SAFE_LEN } from './core/qrgen.js';
 
 initTheme();
 
+// ─── Platform-aware shortcut label ───────────────────────────────
+(function () {
+  const kbd = document.querySelector('#btn-convert .kbd');
+  if (!kbd) return;
+  const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
+  kbd.textContent = isMac ? '⌘↵' : 'Ctrl+↵';
+})();
+
 const parsers = {
   links: (t) => parseLinks(t),
   'links-sub': (t) => parseLinks(t, { subscription: true }),
@@ -50,7 +58,7 @@ const input = $('input');
 const output = $('output');
 const outputSub = $('output-sub');
 const subSize = $('sub-size');
-const qrGrid = $('qr-grid');
+const qrViewer = $('qr-viewer');
 const hint = $('hint');
 const detectBadge = $('detect-badge');
 const errBox = $('error');
@@ -58,6 +66,11 @@ const errBox = $('error');
 // 转换后的最近一次结果(供历史回填和复制使用)
 let lastResult = { text: '', sub: '', target: 'links', nodes: [] };
 let activeTab = 'text';
+
+// QR viewer state
+let qrItems = [];   // { name, type, link, url, isError, isSub }
+let qrIndex = 0;
+let qrRenderSeq = 0;
 
 // ─── Theme ───────────────────────────────────────────────────────
 $('btn-theme').addEventListener('click', () => {
@@ -75,11 +88,13 @@ $('btn-clear').addEventListener('click', () => {
   output.value = '';
   outputSub.value = '';
   subSize.textContent = '';
-  resetQRGrid();
+  resetQRViewer();
   hint.textContent = '';
   hideError();
   updateDetectBadge('');
   lastResult = { text: '', sub: '', target: 'links', nodes: [] };
+  history.clear();
+  renderHistory();
 });
 $('btn-demo').addEventListener('click', () => {
   input.value = DEMO;
@@ -168,8 +183,8 @@ function setTabsAvailability(target) {
   const isLinks = target === 'links';
   tabSub.disabled = !isLinks;
   tabQr.disabled = !isLinks;
-  tabSub.title = isLinks ? '' : '仅在目标为「分享链接」时可用';
-  tabQr.title = isLinks ? '' : '仅在目标为「分享链接」时可用';
+  tabSub.title = isLinks ? '' : '需选择分享链接';
+  tabQr.title = isLinks ? '' : '需选择分享链接';
   if (!isLinks && (activeTab === 'sub' || activeTab === 'qr')) {
     document.querySelector('.tab[data-tab="text"]').click();
   }
@@ -249,7 +264,7 @@ function convert() {
   } else {
     outputSub.value = '';
     subSize.textContent = '';
-    resetQRGrid();
+    resetQRViewer();
   }
 
   // 4. 提示 + 软错误(部分失败)
@@ -275,96 +290,172 @@ function convert() {
 }
 
 // ─── QR rendering ───────────────────────────────────────────────
-function resetQRGrid() {
-  qrGrid.innerHTML = '<div class="qr-empty">仅在目标为「分享链接」时生成二维码 · 每节点一张 + 全部聚合订阅一张</div>';
-  qrGrid.setAttribute('data-empty', 'true');
+function resetQRViewer() {
+  qrRenderSeq += 1;
+  qrItems = [];
+  qrIndex = 0;
+  qrViewer.innerHTML = '<div class="qr-empty">仅在目标为「分享链接」时生成二维码</div>';
+  qrViewer.setAttribute('data-empty', 'true');
 }
 
 async function renderQRs(nodes) {
-  qrGrid.innerHTML = '';
-  qrGrid.removeAttribute('data-empty');
+  const renderId = qrRenderSeq + 1;
+  qrRenderSeq = renderId;
+  const isStale = () => renderId !== qrRenderSeq;
+  qrViewer.innerHTML = '';
+  qrViewer.removeAttribute('data-empty');
+  qrItems = [];
+  qrIndex = 0;
 
-  // per-node
+  // 1. Build item list (per-node + aggregated sub)
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     const link = nodeToShareLink(node);
     const name = node.tag || `node-${i + 1}`;
     const type = (node.type || '').toUpperCase();
-    const card = document.createElement('div');
-    card.className = 'qr-card';
-    if (!link) {
-      card.classList.add('error');
-      card.innerHTML = `
-        <div class="qr-placeholder">无法生成链接<br/>(协议:${type || '未知'})</div>
-        <div class="qr-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
-        <div class="qr-type">${escapeHtml(type || '—')}</div>`;
-      qrGrid.appendChild(card);
-      continue;
-    }
-    card.innerHTML = `
-      <img alt="${escapeHtml(name)} 二维码" />
-      <div class="qr-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
-      <div class="qr-type">${escapeHtml(type || '—')}</div>
-      <div class="qr-actions">
-        <button class="ghost small" data-act="copy">复制链接</button>
-        <button class="ghost small" data-act="download">下载 PNG</button>
-      </div>`;
-    qrGrid.appendChild(card);
-    try {
-      const url = await toDataURL(link);
-      card.querySelector('img').src = url;
-      card.querySelector('[data-act="copy"]').addEventListener('click', async () => {
-        await copyText(link);
-        flashHint('已复制单条链接', 'ok');
-      });
-      card.querySelector('[data-act="download"]').addEventListener('click', () => {
-        downloadDataURL(url, `${sanitizeFile(name)}.png`);
-      });
-    } catch (e) {
-      card.classList.add('error');
-      card.querySelector('img').remove();
-      const ph = document.createElement('div');
-      ph.className = 'qr-placeholder';
-      ph.textContent = '二维码生成失败';
-      card.prepend(ph);
-    }
+    qrItems.push({ name, type, link, url: null, isError: !link, isSub: false });
   }
 
   // aggregated subscription
   const sub = toBase64Sub(nodes);
-  const subCard = document.createElement('div');
-  subCard.className = 'qr-card qr-sub';
-  if (sub.length > QR_SAFE_LEN) {
-    subCard.classList.add('error');
-    subCard.innerHTML = `
-      <div class="qr-placeholder">订阅内容过长(${sub.length} 字符)<br/>建议改用单节点二维码逐个导入</div>
-      <div class="qr-name">全部节点 · base64 订阅</div>
-      <div class="qr-type">SUBSCRIPTION</div>`;
-    qrGrid.appendChild(subCard);
-    return;
+  const subTooLong = sub.length > QR_SAFE_LEN;
+  qrItems.push({
+    name: '全部节点 · base64 订阅',
+    type: subTooLong ? 'SUBSCRIPTION' : `SUBSCRIPTION · ${nodes.length} 节点`,
+    link: subTooLong ? null : sub,
+    url: null,
+    isError: subTooLong,
+    isSub: true,
+    subLen: sub.length
+  });
+
+  // 2. Build nav bar
+  const nav = document.createElement('div');
+  nav.className = 'qr-nav';
+
+  const btnPrev = document.createElement('button');
+  btnPrev.className = 'ghost small qr-nav-btn';
+  btnPrev.type = 'button';
+  btnPrev.title = '上一个';
+  btnPrev.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const selector = document.createElement('select');
+  selector.className = 'qr-selector';
+  qrItems.forEach((item, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = item.isSub ? `[订阅] ${item.name}` : `[${i + 1}] ${item.name} (${item.type})`;
+    selector.appendChild(opt);
+  });
+
+  const counter = document.createElement('span');
+  counter.className = 'qr-counter';
+
+  const btnNext = document.createElement('button');
+  btnNext.className = 'ghost small qr-nav-btn';
+  btnNext.type = 'button';
+  btnNext.title = '下一个';
+  btnNext.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  nav.append(btnPrev, selector, counter, btnNext);
+  qrViewer.appendChild(nav);
+
+  // 3. Display area (single card)
+  const display = document.createElement('div');
+  display.className = 'qr-display';
+  qrViewer.appendChild(display);
+
+  // 4. Navigation logic
+  function updateView() {
+    if (isStale()) return;
+    const total = qrItems.length;
+    const item = qrItems[qrIndex];
+    counter.textContent = `${qrIndex + 1} / ${total}`;
+    selector.value = String(qrIndex);
+    btnPrev.disabled = qrIndex === 0;
+    btnNext.disabled = qrIndex === total - 1;
+    renderCurrentCard(display, item);
   }
-  subCard.innerHTML = `
-    <img alt="聚合订阅二维码" />
-    <div class="qr-name">全部节点 · base64 订阅</div>
-    <div class="qr-type">SUBSCRIPTION · ${nodes.length} 节点</div>
+
+  btnPrev.addEventListener('click', () => { if (qrIndex > 0) { qrIndex--; updateView(); } });
+  btnNext.addEventListener('click', () => { if (qrIndex < qrItems.length - 1) { qrIndex++; updateView(); } });
+  selector.addEventListener('change', () => { qrIndex = Number(selector.value); updateView(); });
+
+  // 5. Keyboard left/right when QR tab is focused
+  qrViewer.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && qrIndex > 0) { qrIndex--; updateView(); e.preventDefault(); }
+    if (e.key === 'ArrowRight' && qrIndex < qrItems.length - 1) { qrIndex++; updateView(); e.preventDefault(); }
+  });
+
+  // 6. Render first card + async generate QR images
+  updateView();
+  asyncGenerateAll(qrItems, renderId);
+}
+
+function renderCurrentCard(container, item) {
+  container.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'qr-card' + (item.isSub ? ' qr-sub' : '') + (item.isError ? ' error' : '');
+  card.tabIndex = 0;
+
+  if (item.isError) {
+    const msg = item.isSub
+      ? `订阅内容过长(${item.subLen} 字符)<br/>建议改用单节点二维码逐个导入`
+      : `无法生成链接<br/>(协议:${item.type || '未知'})`;
+    card.innerHTML = `
+      <div class="qr-placeholder">${msg}</div>
+      <div class="qr-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+      <div class="qr-type">${escapeHtml(item.type || '—')}</div>`;
+  } else if (item.url) {
+    fillCardWithImage(card, item);
+  } else {
+    // Not yet generated — show spinner
+    card.innerHTML = `
+      <div class="qr-placeholder" style="display:grid;place-items:center;height:180px;color:var(--text-mute)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="42 42" stroke-linecap="round"/></svg>
+      </div>
+      <div class="qr-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+      <div class="qr-type">${escapeHtml(item.type || '—')}</div>`;
+    card.dataset.pending = 'true';
+  }
+  container.appendChild(card);
+}
+
+function fillCardWithImage(card, item) {
+  card.innerHTML = `
+    <img alt="${escapeHtml(item.name)} 二维码" src="${item.url}" />
+    <div class="qr-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+    <div class="qr-type">${escapeHtml(item.type || '—')}</div>
     <div class="qr-actions">
-      <button class="ghost small" data-act="copy">复制订阅</button>
+      <button class="ghost small" data-act="copy">${item.isSub ? '复制订阅' : '复制链接'}</button>
       <button class="ghost small" data-act="download">下载 PNG</button>
     </div>`;
-  qrGrid.appendChild(subCard);
-  try {
-    const url = await toDataURL(sub);
-    subCard.querySelector('img').src = url;
-    subCard.querySelector('[data-act="copy"]').addEventListener('click', async () => {
-      await copyText(sub);
-      flashHint('已复制订阅', 'ok');
-    });
-    subCard.querySelector('[data-act="download"]').addEventListener('click', () => {
-      downloadDataURL(url, 'proxvert-subscription.png');
-    });
-  } catch {
-    subCard.classList.add('error');
-    subCard.querySelector('img')?.remove();
+  card.querySelector('[data-act="copy"]').addEventListener('click', async () => {
+    await copyText(item.link);
+    flashHint(item.isSub ? '已复制订阅' : '已复制单条链接', 'ok');
+  });
+  card.querySelector('[data-act="download"]').addEventListener('click', () => {
+    downloadDataURL(item.url, `${sanitizeFile(item.name)}.png`);
+  });
+}
+
+async function asyncGenerateAll(items, renderId) {
+  const isStale = () => renderId !== qrRenderSeq;
+  for (let i = 0; i < items.length; i++) {
+    if (isStale()) return;
+    const item = items[i];
+    if (item.isError || item.url) continue;
+    try {
+      item.url = await toDataURL(item.link);
+    } catch {
+      item.isError = true;
+    }
+    if (isStale()) return;
+    // If this card is currently displayed, refresh it
+    if (i === qrIndex) {
+      const display = qrViewer.querySelector('.qr-display');
+      if (display) renderCurrentCard(display, item);
+    }
   }
 }
 
@@ -384,22 +475,25 @@ function renderHistory() {
   const list = history.load();
   historyCount.textContent = list.length;
   if (!list.length) {
-    historyList.innerHTML = '<div class="history-empty">暂无记录 · 完成转换后会自动保存,最多保留 10 条</div>';
+    historyList.innerHTML = '<div class="history-empty">暂无记录，本次会话自动保存</div>';
     historyList.setAttribute('data-empty', 'true');
     return;
   }
   historyList.removeAttribute('data-empty');
   historyList.innerHTML = '';
   list.forEach((e) => {
+    const src = FORMAT_LABEL[e.src] ? e.src : 'links';
+    const target = serializers[e.target] ? e.target : 'links';
+    const nodeCount = Number.isFinite(Number(e.nodeCount)) ? Math.max(0, Math.floor(Number(e.nodeCount))) : 0;
     const card = document.createElement('div');
     card.className = 'history-item';
     card.innerHTML = `
       <div class="history-item-head">
-        <span class="history-flow">${escapeHtml(FORMAT_LABEL[e.src] || e.src)} <span class="arr">→</span> ${escapeHtml(FORMAT_LABEL[e.target] || e.target)}</span>
+        <span class="history-flow">${escapeHtml(FORMAT_LABEL[src])} <span class="arr">→</span> ${escapeHtml(FORMAT_LABEL[target])}</span>
         <span class="history-time">${formatTime(e.ts)}</span>
       </div>
       <div class="history-item-head">
-        <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:11.5px">${e.nodeCount} 节点</span>
+        <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:11.5px">${nodeCount} 节点</span>
       </div>
       <div class="history-preview" title="${escapeHtml(e.inputPreview)}">${escapeHtml(e.inputPreview) || '<空>'}</div>
       <div class="history-item-actions">
@@ -411,11 +505,11 @@ function renderHistory() {
       input.value = e.input;
       output.value = e.output;
       // 同步选中 target 的 radio
-      const radio = document.querySelector(`input[name="target"][value="${e.target}"]`);
+      const radio = document.querySelector(`input[name="target"][value="${target}"]`);
       if (radio) radio.checked = true;
-      setTabsAvailability(e.target);
+      setTabsAvailability(target);
       // 如目标是 links,尝试重新算出 sub + QR
-      if (e.target === 'links') {
+      if (target === 'links') {
         try {
           const src = detect(e.input);
           const parts = src === 'links' ? splitMultiLink(e.input) : [e.input];
@@ -430,15 +524,15 @@ function renderHistory() {
             renderQRs(nodes);
             lastResult = { text: e.output, sub, target: 'links', nodes };
           } else {
-            outputSub.value = ''; subSize.textContent = ''; resetQRGrid();
+            outputSub.value = ''; subSize.textContent = ''; resetQRViewer();
           }
         } catch {
-          outputSub.value = ''; subSize.textContent = ''; resetQRGrid();
+          outputSub.value = ''; subSize.textContent = ''; resetQRViewer();
         }
       } else {
-        outputSub.value = ''; subSize.textContent = ''; resetQRGrid();
+        outputSub.value = ''; subSize.textContent = ''; resetQRViewer();
       }
-      hint.textContent = `已回填:${FORMAT_LABEL[e.src] || e.src} → ${FORMAT_LABEL[e.target] || e.target} · ${e.nodeCount} 节点`;
+      hint.textContent = `已回填:${FORMAT_LABEL[src]} → ${FORMAT_LABEL[target]} · ${nodeCount} 节点`;
       hint.classList.add('ok');
       runDetect();
     });

@@ -45,7 +45,7 @@
  * @property {string} [server_name]
  * @property {boolean} [insecure]
  * @property {string|string[]} [alpn]
- * @property {{fingerprint?: string}} [utls]
+ * @property {{enabled?: boolean, fingerprint?: string}} [utls]
  * @property {{enabled?: boolean, public_key?: string, short_id?: string}} [reality]
  *
  * @typedef {Object} TransportLike
@@ -68,6 +68,7 @@ export const CONVERTIBLE_TYPES = new Set([
   'hysteria',
   'hysteria2',
   'tuic',
+  'anytls',
   'wireguard',
   'socks',
   'http',

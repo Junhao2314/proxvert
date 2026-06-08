@@ -46,6 +46,7 @@ function parseOne(link) {
     case 'trojan':
     case 'hysteria2':
     case 'tuic':
+    case 'anytls':
     case 'socks':
     case 'http':
     case 'wireguard':
@@ -138,13 +139,15 @@ function parseStdLink(type, link, opts = {}) {
     if (!node.tls) node.tls = { enabled: true };
   } else if (type === 'hysteria2') {
     node.password = userInfo;
-    if (q.sni) node.server_name = q.sni;
-    if (q.insecure === '1' || q.insecure === 'true' || q.allowinsecure === '1' || q.allow_insecure === '1') node.insecure = true;
     if (q.obfs) node.obfsObj = { type: q.obfs, password: q['obfs-password'] };
-    if (q.alpn) node.alpn = q.alpn.split(',');
     if (q.upmbps) node.up_mbps = parseMbps(q.upmbps);
     if (q.downmbps) node.down_mbps = parseMbps(q.downmbps);
-    node.tls = { enabled: true, server_name: q.sni, insecure: !!node.insecure };
+    node.tls = {
+      enabled: true,
+      server_name: q.sni,
+      insecure: isTruthyQuery(q.insecure) || isTruthyQuery(q.allowinsecure) || isTruthyQuery(q.allow_insecure)
+    };
+    if (q.alpn && q.alpn !== 'h3') node.tls.alpn = q.alpn.split(',');
   } else if (type === 'hysteria') {
     node.password = q.auth || userInfo;
     if (q.sni) node.server_name = q.sni;
@@ -159,11 +162,17 @@ function parseStdLink(type, link, opts = {}) {
     node.password = userPass;
     if (q.congestion_control) node.congestion_control = q.congestion_control;
     if (q.udp_relay_mode) node.udp_relay_mode = q.udp_relay_mode;
-    if (q.sni) node.server_name = q.sni;
-    if (q.allow_insecure === '1' || q.allow_insecure === 'true' || q.allowinsecure === '1' || q.insecure === '1') node.insecure = true;
     if (q.disable_sni === '1' || q.disable_sni === 'true') node.disable_sni = true;
-    if (q.alpn) node.alpn = q.alpn.split(',');
-    node.tls = { enabled: true, server_name: q.sni, insecure: !!node.insecure };
+    node.tls = {
+      enabled: true,
+      server_name: q.sni,
+      insecure: isTruthyQuery(q.allow_insecure) || isTruthyQuery(q.allowinsecure) || isTruthyQuery(q.insecure)
+    };
+    if (q.alpn) node.tls.alpn = q.alpn.split(',');
+  } else if (type === 'anytls') {
+    node.password = userInfo;
+    applyTlsQuery(node, q);
+    if (!node.tls) node.tls = { enabled: true };
   } else if (type === 'naive') {
     if (userInfo) node.username = userInfo;
     if (userPass) node.password = userPass;
@@ -235,17 +244,30 @@ function applyTransportQuery(node, q) {
 }
 
 function applyTlsQuery(node, q) {
-  if (!q.security && !q.sni && !q.alpn && !q.fp && !q.allowInsecure) return;
+  if (
+    !q.security &&
+    !q.sni &&
+    !q.alpn &&
+    !q.fp &&
+    !q.allowInsecure &&
+    !q.allowinsecure &&
+    !q.allow_insecure &&
+    !q.insecure
+  ) return;
   const tls = { enabled: !!q.security || node.type === 'trojan' };
   if (q.sni) tls.server_name = q.sni;
   if (q.alpn) tls.alpn = q.alpn.split(',');
-  if (q.fp) tls.utls = { fingerprint: q.fp };
-  if (q.allowInsecure === '1' || q.allowInsecure === 'true' || q.allowinsecure === '1') tls.insecure = true;
+  if (q.fp) tls.utls = { enabled: true, fingerprint: q.fp };
+  tls.insecure = isTruthyQuery(q.allowInsecure) || isTruthyQuery(q.allowinsecure) || isTruthyQuery(q.allow_insecure) || isTruthyQuery(q.insecure);
   if (q.security === 'reality') {
     tls.enabled = true;
     tls.reality = { enabled: true, public_key: q.pbk, short_id: q.sid };
   }
   node.tls = tls;
+}
+
+function isTruthyQuery(value) {
+  return value === '1' || value === 'true';
 }
 
 function parseSS(fullLink) {

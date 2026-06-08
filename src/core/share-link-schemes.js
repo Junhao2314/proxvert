@@ -9,6 +9,7 @@ const SHARE_LINK_SCHEME_ALIASES = Object.freeze({
   hysteria: 'hysteria',
   hy1: 'hysteria',
   tuic: 'tuic',
+  anytls: 'anytls',
   socks: 'socks',
   socks4: 'socks',
   socks5: 'socks',

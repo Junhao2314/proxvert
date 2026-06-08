@@ -1,6 +1,6 @@
 /**
  * NormalizedNode → 分享链接（vmess:// vless:// trojan:// ss:// ssr://
- * hysteria2:// tuic:// wg:// socks(5)://、http://）
+ * hysteria2:// tuic:// anytls:// wg:// socks(5)://、http://）
  *
  * 移植自 F:\迅雷下载\singbox_to_share_local.js（Node CLI 版）：
  * - Buffer.from(s).toString('base64') 替换为 b64Utf8（UTF-8 安全的 btoa）
@@ -259,10 +259,17 @@ function tuicFrom(ob, name) {
   const alpn = ob.alpn || tls.alpn;
   if (alpn) addKV(q, 'alpn', Array.isArray(alpn) ? alpn.join(',') : alpn);
   addKV(q, 'sni', ob.server_name || tls.server_name);
-  if (ob.insecure || tls.insecure) addKV(q, 'allow_insecure', '1');
+  if (ob.insecure || tls.insecure) addKV(q, 'insecure', '1');
   if (ob.disable_sni) addKV(q, 'disable_sni', '1');
   const qs = q.length ? `?${q.join('&')}` : '';
   return `tuic://${enc(ob.uuid || '')}:${enc(ob.password || '')}@${formatHostPort(ob.server, ob.server_port)}${qs}#${enc(name || ob.tag || '')}`;
+}
+
+function anytlsFrom(ob, name) {
+  const q = [];
+  mapTlsAndRealityParams(ob.tls || {}, q);
+  const qs = q.length ? `?${q.join('&')}` : '';
+  return `anytls://${enc(ob.password || '')}@${formatHostPort(ob.server, ob.server_port)}${qs}#${enc(name || ob.tag || '')}`;
 }
 
 export function nodeToLink(ob, name) {
@@ -282,6 +289,7 @@ export function nodeToLink(ob, name) {
     case 'hysteria': return hysteriaFrom(ob, tag);
     case 'hysteria2': return hysteria2From(ob, tag);
     case 'tuic': return tuicFrom(ob, tag);
+    case 'anytls': return anytlsFrom(ob, tag);
     case 'wireguard': return wireguardFrom(ob, tag);
     default: return '';
   }

@@ -28,9 +28,6 @@
   </head>
   <body>
     <div class="bg-decor" aria-hidden="true">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
       <div class="grid-overlay"></div>
     </div>
 
@@ -54,7 +51,7 @@
             />
           </svg>
           <span class="brand-name">proxvert</span>
-          <span class="brand-badge">v0.2</span>
+          <span class="brand-badge">v0.3</span>
         </a>
         <nav class="hdr-nav">
           <button
@@ -103,32 +100,61 @@
           </h1>
           <p class="hero-sub">
             在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与分享链接之间互转,
-            支持 base64 订阅与二维码导出。
+            支持 base64 订阅与二维码导出 —— 自动识别输入,规范化为统一节点模型,再输出成目标格式。
           </p>
-          <div class="hero-pills" aria-label="能力摘要">
-            <span>Auto detect</span>
-            <span>Multi protocol</span>
-            <span>QR export</span>
-          </div>
+          <ol class="hero-flow" aria-label="转换流程">
+            <li class="hero-flow-step">
+              <span class="hf-idx">01</span>
+              <span class="hf-name">Detect</span>
+              <span class="hf-desc">识别输入</span>
+            </li>
+            <li class="hero-flow-step">
+              <span class="hf-idx">02</span>
+              <span class="hf-name">Normalize</span>
+              <span class="hf-desc">统一节点模型</span>
+            </li>
+            <li class="hero-flow-step">
+              <span class="hf-idx">03</span>
+              <span class="hf-name">Serialize</span>
+              <span class="hf-desc">输出目标格式</span>
+            </li>
+          </ol>
         </div>
         <div class="hero-visual" aria-hidden="true">
-          <div class="orbit-ring"></div>
-          <div class="format-node node-a">
-            <span>Mihomo</span>
-            <strong>YAML</strong>
-          </div>
-          <div class="format-node node-b">
-            <span>sing-box</span>
-            <strong>JSON</strong>
-          </div>
-          <div class="format-node node-c">
-            <span>Share</span>
-            <strong>Links</strong>
-          </div>
-          <div class="orbit-core">
-            <span>local</span>
-            <strong>3-way</strong>
-            <span>bridge</span>
+          <div class="graph">
+            <svg class="hero-graph" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="edgeG" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                  <stop class="edge-stop-0" offset="0%" />
+                  <stop class="edge-stop-1" offset="50%" />
+                  <stop class="edge-stop-2" offset="100%" />
+                </linearGradient>
+              </defs>
+              <polygon class="graph-tri" points="50,15 15,80 85,80" />
+              <g class="graph-spokes">
+                <line class="spoke" x1="50" y1="55" x2="50" y2="15" />
+                <line class="spoke" x1="50" y1="55" x2="15" y2="80" />
+                <line class="spoke" x1="50" y1="55" x2="85" y2="80" />
+              </g>
+            </svg>
+            <div class="format-node node-a">
+              <span>Mihomo</span>
+              <strong>YAML</strong>
+            </div>
+            <div class="format-node node-b">
+              <span>sing-box</span>
+              <strong>JSON</strong>
+            </div>
+            <div class="format-node node-c">
+              <span>Share</span>
+              <strong>Links</strong>
+            </div>
+            <div class="hub">
+              <svg class="hub-mark" viewBox="0 0 24 24" fill="none">
+                <path d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="hub-label">3-way</span>
+            </div>
           </div>
         </div>
       </section>
@@ -170,82 +196,6 @@
         </div>
       </section>
 
-      <section class="flow-board card" aria-label="转换路径">
-        <div class="flow-copy">
-          <span class="section-kicker">CONVERSION RAIL</span>
-          <h2>把格式差异收敛到一条本地路径</h2>
-          <p>先自动识别输入，再规范化为统一节点模型，最后输出成目标格式；深浅主题使用独立文字 token，避免装饰色直接承担正文阅读。</p>
-        </div>
-        <div class="flow-steps" aria-hidden="true">
-          <div class="flow-step">
-            <span>01</span>
-            <strong>Detect</strong>
-            <em>识别来源</em>
-          </div>
-          <div class="flow-line"></div>
-          <div class="flow-step">
-            <span>02</span>
-            <strong>Normalize</strong>
-            <em>统一节点</em>
-          </div>
-          <div class="flow-line"></div>
-          <div class="flow-step">
-            <span>03</span>
-            <strong>Serialize</strong>
-            <em>输出目标</em>
-          </div>
-        </div>
-      </section>
-
-      <section class="bar card">
-        <div class="bar-group" role="radiogroup" aria-label="输出格式">
-          <span class="bar-label">输出格式</span>
-          <label class="seg">
-            <input type="radio" name="target" value="links" checked />
-            <span>分享链接</span>
-          </label>
-          <label class="seg">
-            <input type="radio" name="target" value="singbox" />
-            <span>sing-box JSON</span>
-          </label>
-          <label class="seg">
-            <input type="radio" name="target" value="mihomo" />
-            <span>Mihomo YAML</span>
-          </label>
-        </div>
-        <div class="bar-actions">
-          <button id="btn-demo" class="ghost" type="button">填入示例</button>
-          <button id="btn-clear" type="button">清空</button>
-          <button id="btn-convert" class="primary" type="button">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 7h11l-3-3M19 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span>转换</span>
-            <kbd class="kbd">⌘↵</kbd>
-          </button>
-        </div>
-      </section>
-
-      <details id="history" class="history card">
-        <summary class="history-summary">
-          <span class="history-title">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span>最近转换</span>
-            <span class="history-meta"><span id="history-count">0</span> / 10</span>
-          </span>
-          <span class="history-actions">
-            <button id="btn-history-clear" class="ghost small" type="button">清空</button>
-            <span class="chev" aria-hidden="true">▾</span>
-          </span>
-        </summary>
-        <div id="history-list" class="history-list" data-empty="true">
-          <div class="history-empty">暂无记录，本次会话自动保存</div>
-        </div>
-      </details>
-
       <div class="io-grid">
         <section class="pane card">
           <div class="pane-head">
@@ -265,8 +215,56 @@
           ></textarea>
         </section>
 
-        <section class="pane card">
+        <section class="pane card pane-output">
+          <div class="output-bar">
+            <div class="output-bar-head">
+              <span class="bar-label">输出格式</span>
+              <div class="bar-actions bar-actions-secondary" role="group" aria-label="输入操作">
+                <button id="btn-demo" class="ghost small" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                    <path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                  </svg>
+                  <span>示例</span>
+                </button>
+                <button id="btn-clear" class="ghost small danger-soft" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>清空</span>
+                </button>
+              </div>
+            </div>
+            <div class="output-bar-main">
+              <div class="bar-group format-segments" role="radiogroup" aria-label="输出格式">
+                <label class="seg">
+                  <input type="radio" name="target" value="links" checked />
+                  <span>分享链接</span>
+                </label>
+                <label class="seg">
+                  <input type="radio" name="target" value="singbox" />
+                  <span>sing-box JSON</span>
+                </label>
+                <label class="seg">
+                  <input type="radio" name="target" value="mihomo" />
+                  <span>Mihomo YAML</span>
+                </label>
+              </div>
+              <button id="btn-convert" class="primary output-primary-action" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 7h11l-3-3M19 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span>转换</span>
+                <kbd class="kbd">⌘↵</kbd>
+              </button>
+            </div>
+          </div>
+
           <div class="pane-head pane-head-tabs">
+            <span class="text-only-note" hidden>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+              纯文本输出
+            </span>
             <div class="tabs" role="tablist" aria-label="输出形态">
               <button class="tab active" data-tab="text" role="tab" type="button">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
@@ -313,6 +311,26 @@
           </div>
         </section>
       </div>
+
+      <details id="history" class="history card">
+        <summary class="history-summary">
+          <span class="history-title">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>最近转换</span>
+            <span class="history-meta"><span id="history-count">0</span> / 10</span>
+          </span>
+          <span class="history-actions">
+            <button id="btn-history-clear" class="ghost small" type="button">清空</button>
+            <span class="chev" aria-hidden="true">▾</span>
+          </span>
+        </summary>
+        <div id="history-list" class="history-list" data-empty="true">
+          <div class="history-empty">暂无记录，本次会话自动保存</div>
+        </div>
+      </details>
 
       <div id="error" class="err" hidden></div>
     </main>

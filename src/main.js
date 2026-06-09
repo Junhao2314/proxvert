@@ -178,14 +178,14 @@ document.querySelectorAll('.tab').forEach((btn) => {
 });
 
 function setTabsAvailability(target) {
-  const tabSub = document.querySelector('.tab[data-tab="sub"]');
-  const tabQr = document.querySelector('.tab[data-tab="qr"]');
+  const tabsEl = document.querySelector('.pane-head-tabs .tabs');
+  const note = document.querySelector('.text-only-note');
   const isLinks = target === 'links';
-  tabSub.disabled = !isLinks;
-  tabQr.disabled = !isLinks;
-  tabSub.title = isLinks ? '' : '需选择分享链接';
-  tabQr.title = isLinks ? '' : '需选择分享链接';
-  if (!isLinks && (activeTab === 'sub' || activeTab === 'qr')) {
+  // 仅「分享链接」有多种输出形态(文本/订阅/二维码);
+  // sing-box / Mihomo 只有纯文本,直接隐藏整条 tab 栏。
+  if (tabsEl) tabsEl.hidden = !isLinks;
+  if (note) note.hidden = isLinks;
+  if (!isLinks && activeTab !== 'text') {
     document.querySelector('.tab[data-tab="text"]').click();
   }
 }
@@ -487,20 +487,16 @@ function renderHistory() {
     const nodeCount = Number.isFinite(Number(e.nodeCount)) ? Math.max(0, Math.floor(Number(e.nodeCount))) : 0;
     const card = document.createElement('div');
     card.className = 'history-item';
+    card.title = e.inputPreview || '';
     card.innerHTML = `
-      <div class="history-item-head">
-        <span class="history-flow">${escapeHtml(FORMAT_LABEL[src])} <span class="arr">→</span> ${escapeHtml(FORMAT_LABEL[target])}</span>
-        <span class="history-time">${formatTime(e.ts)}</span>
-      </div>
-      <div class="history-item-head">
-        <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:11.5px">${nodeCount} 节点</span>
-      </div>
-      <div class="history-preview" title="${escapeHtml(e.inputPreview)}">${escapeHtml(e.inputPreview) || '<空>'}</div>
-      <div class="history-item-actions">
+      <span class="history-flow">${escapeHtml(FORMAT_LABEL[src])} <span class="arr">→</span> ${escapeHtml(FORMAT_LABEL[target])}</span>
+      <span class="history-badge">${nodeCount} 节点</span>
+      <span class="history-time">${formatTime(e.ts)}</span>
+      <span class="history-item-actions">
         <button class="ghost small" data-act="restore">回填</button>
-        <button class="ghost small" data-act="copy">复制输出</button>
+        <button class="ghost small" data-act="copy">复制</button>
         <button class="ghost small" data-act="remove" title="移除此条">×</button>
-      </div>`;
+      </span>`;
     card.querySelector('[data-act="restore"]').addEventListener('click', () => {
       input.value = e.input;
       output.value = e.output;

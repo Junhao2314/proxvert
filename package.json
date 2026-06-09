@@ -1,7 +1,7 @@
 {
   "name": "proxvert",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Mihomo / sing-box / v2ray share-link mutual converter — pure frontend.",
   "scripts": {

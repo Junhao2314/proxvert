@@ -17,7 +17,7 @@
 ## ✨ 特性
 
 - **三向互转** — Mihomo (Clash.Meta) YAML ⇄ sing-box JSON ⇄ 分享链接
-- **多协议支持** — `vmess` · `vless` · `trojan` · `ss` · `ssr` · `hysteria` · `hysteria2` · `tuic` · `wireguard` · `socks` · `http`
+- **多协议支持** — `vmess` · `vless` · `trojan` · `ss` · `ssr` · `hysteria` · `hysteria2` · `tuic` · `anytls` · `wireguard` · `socks` · `http` · `naive` · `snell` · `ssh`
 - **自动识别格式** — 粘贴即转，无需手动选择输入格式
 - **Base64 订阅解码** — 支持节点订阅链接的整段 base64 解析
 - **纯前端运行** — 全部转换在浏览器中完成，无后端、无网络请求、无数据外发
@@ -74,9 +74,13 @@ npm run preview
 | `hysteria` | `hysteria://` · `hy1://` | `hysteria://` |
 | `hysteria2` | `hysteria2://` · `hy2://` | `hysteria2://` |
 | `tuic` | `tuic://` | `tuic://` |
+| `anytls` | `anytls://` | `anytls://` |
 | `wireguard` | `wg://` · `wireguard://` | `wg://` |
 | `socks` | `socks://` · `socks4://` · `socks5://` | `socks4://` 或 `socks5://`（取决于 `version`） |
 | `http` | `http://` · `https://` | `http://` 或 `https://`（取决于 `tls.enabled`） |
+| `naive` | `naive://` | `naive://` |
+| `snell` | `snell://` | `snell://` |
+| `ssh` | `ssh://` | `ssh://` |
 
 ### 协议覆盖
 
@@ -90,9 +94,13 @@ npm run preview
 | Hysteria | `password/auth_str` · `obfs` · `up/down_mbps` |
 | Hysteria2 | `password` · `obfs` · `up/down_mbps` |
 | TUIC | `uuid` · `password` · `congestion_control` |
+| AnyTLS | `password` · `tls` · `reality` |
 | WireGuard | `private_key` · `peer_public_key` · `address` |
 | SOCKS | `username` · `password` · `version (4/5)` |
 | HTTP/HTTPS | `username` · `password` · `tls` |
+| Naive | `username` · `password` · `tls` |
+| Snell | `password` · `obfs` · `version` |
+| SSH | `username` · `password` · `private_key` |
 
 横向支持的传输层与安全层：`ws` · `grpc` · `http` · `httpupgrade` · `tls` · `reality` · `utls`。
 
@@ -121,7 +129,7 @@ proxvert/
 └── .github/workflows/deploy.yml
 ```
 
-架构采用 **hub-and-spoke**：所有格式通过 `NormalizedNode` 单一规范化模型中转，新增格式只需各写一个 parser + serializer。详细架构分析见 [`COMPREHENSIVE-REPORT.md`](COMPREHENSIVE-REPORT.md)。
+架构采用 **hub-and-spoke**：所有格式通过 `NormalizedNode` 单一规范化模型中转，新增格式只需各写一个 parser + serializer。
 
 ## 🛠️ 技术栈
 

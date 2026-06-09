@@ -45,6 +45,7 @@
  * @property {string} [server_name]
  * @property {boolean} [insecure]
  * @property {string|string[]} [alpn]
+ * @property {boolean} [disable_sni]
  * @property {{enabled?: boolean, fingerprint?: string}} [utls]
  * @property {{enabled?: boolean, public_key?: string, short_id?: string}} [reality]
  *

@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'none'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    />
     <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端,节点数据不离开浏览器" />
     <title>proxvert · 代理配置格式互转</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0b14'/%3E%3Cpath d='M15 22h20a10 10 0 1 1 0 20H24M49 42H29a10 10 0 1 1 0-20h11' fill='none' stroke='%2322d3ee' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./src/style.css" />
     <script>
       // 防主题闪烁:DOM 解析阶段就写上 data-theme

@@ -28,10 +28,15 @@ export default function parse(text, opts = {}) {
       const node = parseOne(line);
       if (node && CONVERTIBLE_TYPES.has(node.type)) out.push(node);
     } catch (e) {
-      console.warn('解析失败:', line.slice(0, 40), e.message);
+      console.warn('解析失败:', safeLinkScheme(line), e.message);
     }
   }
   return out;
+}
+
+function safeLinkScheme(line) {
+  const m = String(line || '').match(/^([a-zA-Z0-9+.-]+):\/\//);
+  return m ? `${m[1].toLowerCase()}://` : 'unknown scheme';
 }
 
 function parseOne(link) {

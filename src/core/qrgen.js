@@ -4,8 +4,7 @@ import QRCode from 'qrcode';
 const DEFAULT = {
   errorCorrectionLevel: 'M',
   margin: 1,
-  scale: 4,
-  color: { dark: '#0f172a', light: '#ffffff' }
+  scale: 4
 };
 
 function themedColor() {

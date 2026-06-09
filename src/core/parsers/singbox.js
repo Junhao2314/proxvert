@@ -8,8 +8,39 @@ export default function parse(text) {
   const obj = JSON.parse(text);
   const list = extract(obj);
   return list
-    .map((ob) => ({ ...ob, type: normalizeType(ob.type) }))
+    .map(normalizeOutbound)
     .filter((ob) => CONVERTIBLE_TYPES.has(ob.type));
+}
+
+function normalizeOutbound(ob) {
+  const node = { ...ob, type: normalizeType(ob.type) };
+
+  if ((node.type === 'hysteria' || node.type === 'hysteria2') && node.obfs !== undefined && !node.obfsObj) {
+    node.obfsObj = normalizeHysteriaObfs(node.type, node.obfs);
+    delete node.obfs;
+  }
+
+  return node;
+}
+
+function normalizeHysteriaObfs(type, obfs) {
+  if (obfs && typeof obfs === 'object' && !Array.isArray(obfs)) {
+    return {
+      type: obfs.type,
+      password: obfs.password
+    };
+  }
+
+  if (type === 'hysteria') {
+    return {
+      type: 'salamander',
+      password: String(obfs)
+    };
+  }
+
+  return {
+    type: String(obfs)
+  };
 }
 
 function extract(obj) {

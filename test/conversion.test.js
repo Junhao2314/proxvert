@@ -219,6 +219,128 @@ test('normalizes Mihomo hy1 aliases into convertible hysteria nodes', () => {
   assert.equal(node.server_name, 'example.com');
 });
 
+test('serializes Hysteria obfsObj to sing-box obfs fields', () => {
+  const hy2 = parseLinks('hy2://secret@example.com:443?obfs=salamander&obfs-password=mask#hy2');
+  const [hy2Outbound] = JSON.parse(serializeSingbox(hy2));
+
+  assert.deepEqual(hy2Outbound.obfs, {
+    type: 'salamander',
+    password: 'mask'
+  });
+  assert.equal('obfsObj' in hy2Outbound, false);
+
+  const hy1 = [{
+    tag: 'hy1',
+    type: 'hysteria',
+    server: 'example.com',
+    server_port: 443,
+    password: 'secret',
+    obfsObj: { type: 'salamander', password: 'mask' }
+  }];
+  const [hy1Outbound] = JSON.parse(serializeSingbox(hy1));
+
+  assert.equal(hy1Outbound.obfs, 'mask');
+  assert.equal('obfsObj' in hy1Outbound, false);
+});
+
+test('preserves native sing-box Hysteria obfs through Mihomo and share links', () => {
+  const nodes = parseSingbox(JSON.stringify([
+    {
+      tag: 'hy2',
+      type: 'hysteria2',
+      server: 'example.com',
+      server_port: 443,
+      password: 'secret',
+      obfs: { type: 'salamander', password: 'mask' },
+      tls: { enabled: true, server_name: 'example.com' }
+    },
+    {
+      tag: 'hy1',
+      type: 'hysteria',
+      server: 'example.com',
+      server_port: 443,
+      password: 'secret',
+      obfs: 'legacy-mask',
+      tls: { enabled: true, server_name: 'example.com' }
+    }
+  ]));
+
+  assert.deepEqual(nodes[0].obfsObj, { type: 'salamander', password: 'mask' });
+  assert.deepEqual(nodes[1].obfsObj, { type: 'salamander', password: 'legacy-mask' });
+  assert.equal('obfs' in nodes[0], false);
+  assert.equal('obfs' in nodes[1], false);
+
+  const links = serializeLinks(nodes).split('\n');
+  assert.match(links[0], /obfs=salamander/);
+  assert.match(links[0], /obfs-password=mask/);
+  assert.match(links[1], /obfs=salamander/);
+  assert.match(links[1], /obfs-password=legacy-mask/);
+
+  const singboxRoundTrip = JSON.parse(serializeSingbox(parseLinks(links.join('\n'))));
+  assert.deepEqual(singboxRoundTrip[0].obfs, { type: 'salamander', password: 'mask' });
+  assert.equal(singboxRoundTrip[1].obfs, 'legacy-mask');
+
+  const mihomoRoundTrip = parseMihomo(serializeMihomo(nodes));
+  assert.deepEqual(mihomoRoundTrip[0].obfsObj, { type: 'salamander', password: 'mask' });
+  assert.deepEqual(mihomoRoundTrip[1].obfsObj, { type: 'salamander', password: 'legacy-mask' });
+});
+
+test('does not log share-link userinfo when parsing fails', () => {
+  const originalWarn = console.warn;
+  const calls = [];
+  console.warn = (...args) => calls.push(args);
+
+  try {
+    parseLinks('ss://SUPERSECRET%E0%A4%A@example.com:8388#bad');
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'ss://');
+  assert.equal(calls.some((args) => args.some((value) => String(value).includes('SUPERSECRET'))), false);
+});
+
+test('keeps Hysteria and TUIC fallback TLS fields inside sing-box tls only', () => {
+  const yaml = [
+    'proxies:',
+    '  - name: hy2',
+    '    type: hy2',
+    '    server: example.com',
+    '    port: 443',
+    '    password: secret',
+    '    sni: example.com',
+    '    skip-cert-verify: true',
+    '    alpn:',
+    '      - h3',
+    '  - name: tuic',
+    '    type: tuic',
+    '    server: example.com',
+    '    port: 443',
+    '    uuid: d658a185-faef-4dca-b15d-8d3f1727dc4c',
+    '    password: secret',
+    '    sni: example.com',
+    '    skip-cert-verify: true',
+    '    disable-sni: true',
+    '    alpn:',
+    '      - h3'
+  ].join('\n');
+
+  const outbounds = JSON.parse(serializeSingbox(parseMihomo(yaml)));
+
+  for (const outbound of outbounds) {
+    assert.equal('server_name' in outbound, false);
+    assert.equal('insecure' in outbound, false);
+    assert.equal('alpn' in outbound, false);
+    assert.equal('disable_sni' in outbound, false);
+    assert.equal(outbound.tls.server_name, 'example.com');
+    assert.equal(outbound.tls.insecure, true);
+    assert.deepEqual(outbound.tls.alpn, ['h3']);
+  }
+
+  assert.equal(outbounds[1].tls.disable_sni, true);
+});
+
 test('round-trips simple Mihomo Shadowsocks nodes through normalized model', () => {
   const yaml = [
     'proxies:',

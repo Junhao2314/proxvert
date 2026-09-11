@@ -21,6 +21,7 @@ Thumbs.db
 .claude/
 .playwright-mcp/
 .ace-tool/
+.workbuddy/
 
 # Env
 .env
@@ -37,6 +38,11 @@ traces/
 *.trace
 *.zip
 
-# Generated images
-*.png
-*.PNG
+# Local review artifacts — screenshots / design shots dumped at the repo root.
+# Deliberately root-only: real app assets under public/ or src/assets/ stay trackable.
+/*.png
+/*.PNG
+/*.jpg
+/*.jpeg
+/*.webp
+/*.psd

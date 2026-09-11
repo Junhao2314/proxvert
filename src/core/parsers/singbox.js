@@ -2,7 +2,7 @@
  * sing-box JSON → NormalizedNode[]
  * 模型本身就是 sing-box outbound 形态 → 基本是过滤 + 透传。
  */
-import { CONVERTIBLE_TYPES, normalizeType } from '../model.js';
+import { CONVERTIBLE_TYPES, normalizePort, normalizeType } from '../model.js';
 
 export default function parse(text) {
   const obj = JSON.parse(text);
@@ -14,6 +14,9 @@ export default function parse(text) {
 
 function normalizeOutbound(ob) {
   const node = { ...ob, type: normalizeType(ob.type) };
+  const port = normalizePort(ob.server_port);
+  if (port === undefined) delete node.server_port;
+  else node.server_port = port;
 
   if ((node.type === 'hysteria' || node.type === 'hysteria2') && node.obfs !== undefined && !node.obfsObj) {
     node.obfsObj = normalizeHysteriaObfs(node.type, node.obfs);

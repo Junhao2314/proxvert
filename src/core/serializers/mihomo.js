@@ -2,13 +2,14 @@
  * NormalizedNode[] → Mihomo (Clash.Meta) YAML 的 proxies 段。
  */
 import yaml from 'js-yaml';
+import { normalizePort } from '../model.js';
 
 function nodeToMihomo(n) {
   const out = {
     name: n.tag || `${n.type}-${n.server}`,
     type: mapType(n.type),
     server: n.server,
-    port: Number(n.server_port) || n.server_port
+    port: normalizePort(n.server_port)
   };
 
   const tls = n.tls || {};

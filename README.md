@@ -6,6 +6,7 @@
 
 在 Mihomo YAML、sing-box JSON 与分享链接之间一键转换 · 纯前端 · 节点数据不离开浏览器
 
+[![Version](https://img.shields.io/badge/version-1.0.0-2ea44f.svg)](package.json)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Vite](https://img.shields.io/badge/build-Vite%205-646CFF.svg)](https://vitejs.dev/)
 [![Deploy](https://img.shields.io/badge/deploy-GitHub%20Pages-181717.svg)](.github/workflows/deploy.yml)

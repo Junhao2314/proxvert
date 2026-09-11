@@ -2,127 +2,88 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; connect-src 'none'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
     />
-    <meta name="description" content="proxvert · Mihomo / sing-box / 分享链接 三端互转 · 纯前端,节点数据不离开浏览器" />
-    <title>proxvert · 代理配置格式互转</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0b14'/%3E%3Cpath d='M15 22h20a10 10 0 1 1 0 20H24M49 42H29a10 10 0 1 1 0-20h11' fill='none' stroke='%2322d3ee' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <meta name="description" content="proxvert · Mihomo、sing-box 与分享链接互转工具" />
+    <title>proxvert · 代理配置无损互转</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4' fill='none' stroke='%23C45B3C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./src/style.css" />
     <script>
-      // 防主题闪烁:DOM 解析阶段就写上 data-theme
       (function () {
+        var root = document.documentElement;
+        // 视图状态必须在首次绘制前定好,否则会闪一下展示态。
+        // #app 是工作区的深链,方便收藏/分享直达转换器。
+        root.setAttribute('data-view', location.hash === '#app' ? 'app' : 'showcase');
         try {
-          var v = localStorage.getItem('proxvert.theme');
-          if (v !== 'dark' && v !== 'light') {
-            v = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          var value = localStorage.getItem('proxvert.theme');
+          if (value !== 'dark' && value !== 'light') {
+            value = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          document.documentElement.setAttribute('data-theme', v);
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+          root.setAttribute('data-theme', value);
+        } catch {
+          root.setAttribute('data-theme', 'light');
         }
       })();
     </script>
   </head>
   <body>
-    <div class="bg-decor" aria-hidden="true">
-      <div class="grid-overlay"></div>
-    </div>
-
     <header class="hdr">
       <div class="hdr-inner">
-        <a class="brand" href="./" aria-label="proxvert">
+        <a class="brand" href="./" data-goto="showcase" aria-label="返回 proxvert 介绍">
           <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="brandG" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#F59E0B" />
-                <stop offset="52%" stop-color="#22D3EE" />
-                <stop offset="100%" stop-color="#BEF264" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4"
-              stroke="url(#brandG)"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
+            <path d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="brand-name">proxvert</span>
-          <span class="brand-badge">v0.3</span>
+          <span class="brand-badge">v1.0</span>
         </a>
-        <nav class="hdr-nav">
-          <button
-            id="btn-theme"
-            class="nav-link theme-toggle"
-            type="button"
-            aria-label="切换主题"
-            title="切换主题"
-          >
-            <svg class="ic-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            </svg>
-            <svg class="ic-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
-              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
+        <nav class="hdr-nav" aria-label="主导航">
+          <button id="btn-history-open" class="nav-link nav-history" type="button" aria-label="打开最近转换记录" aria-controls="history" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /><path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="nav-text">历史</span>
+            <span id="history-badge" class="nav-badge">0</span>
           </button>
-          <a
-            class="nav-link"
-            href="https://github.com/junhao2314/proxvert"
-            target="_blank"
-            rel="noopener"
-            aria-label="GitHub"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.84c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2z"
-              />
-            </svg>
+          <button id="btn-theme" class="nav-link theme-toggle" type="button" aria-label="切换主题" title="切换主题">
+            <svg class="ic-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+            <svg class="ic-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+          </button>
+          <a class="nav-link icon-link" href="https://github.com/junhao2314/proxvert" target="_blank" rel="noopener" aria-label="在 GitHub 查看 proxvert">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.84c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2z" /></svg>
           </a>
         </nav>
       </div>
     </header>
 
-    <main class="app">
-      <section class="hero">
-        <div class="hero-copy">
-          <span class="eyebrow">
-            <span class="eyebrow-dot"></span>
-            纯前端 · 数据不离开浏览器
-          </span>
-          <h1 class="hero-title">
-            代理配置
-            <span class="grad-text">无损互转</span>
-          </h1>
-          <p class="hero-sub">
-            在 <em>Mihomo YAML</em>、<em>sing-box JSON</em> 与分享链接之间互转,
-            支持 base64 订阅与二维码导出 —— 自动识别输入,规范化为统一节点模型,再输出成目标格式。
-          </p>
-          <ol class="hero-flow" aria-label="转换流程">
-            <li class="hero-flow-step">
-              <span class="hf-idx">01</span>
-              <span class="hf-name">Detect</span>
-              <span class="hf-desc">识别输入</span>
-            </li>
-            <li class="hero-flow-step">
-              <span class="hf-idx">02</span>
-              <span class="hf-name">Normalize</span>
-              <span class="hf-desc">统一节点模型</span>
-            </li>
-            <li class="hero-flow-step">
-              <span class="hf-idx">03</span>
-              <span class="hf-name">Serialize</span>
-              <span class="hf-desc">输出目标格式</span>
-            </li>
+    <section class="showcase" aria-labelledby="showcase-title">
+      <div class="showcase-hero">
+        <div class="showcase-lead">
+          <p class="eyebrow"><span class="eyebrow-dot"></span>本地运行 · 数据不离开浏览器</p>
+          <h1 id="showcase-title" class="showcase-title">代理配置<span>无损互转</span></h1>
+          <p class="showcase-sub">Mihomo YAML、sing-box JSON 与分享链接之间双向转换，粘贴即自动识别。结果可导出为文本、base64 订阅或二维码。</p>
+
+          <ol class="showcase-flow" aria-label="转换流程">
+            <li><span class="sf-idx">01</span><strong class="sf-name">Detect</strong><small class="sf-desc">识别输入</small></li>
+            <li><span class="sf-idx">02</span><strong class="sf-name">Normalize</strong><small class="sf-desc">统一模型</small></li>
+            <li><span class="sf-idx">03</span><strong class="sf-name">Serialize</strong><small class="sf-desc">输出目标</small></li>
           </ol>
+
+          <div class="showcase-cta">
+            <button class="primary cta-primary" type="button" data-goto="app">
+              <span>开始转换</span>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </button>
+            <button class="ghost cta-secondary" type="button" data-goto="app" data-load-demo>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+              <span>载入示例看看</span>
+            </button>
+          </div>
         </div>
-        <div class="hero-visual" aria-hidden="true">
+
+        <div class="showcase-visual" aria-hidden="true">
           <div class="graph">
-            <svg class="hero-graph" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            <svg class="graph-lines" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
               <defs>
                 <linearGradient id="edgeG" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
                   <stop class="edge-stop-0" offset="0%" />
@@ -130,220 +91,151 @@
                   <stop class="edge-stop-2" offset="100%" />
                 </linearGradient>
               </defs>
-              <polygon class="graph-tri" points="50,15 15,80 85,80" />
+              <polygon class="graph-tri" points="50,13 13,80 87,80" />
               <g class="graph-spokes">
-                <line class="spoke" x1="50" y1="55" x2="50" y2="15" />
-                <line class="spoke" x1="50" y1="55" x2="15" y2="80" />
-                <line class="spoke" x1="50" y1="55" x2="85" y2="80" />
+                <line class="spoke" x1="50" y1="55" x2="50" y2="13" />
+                <line class="spoke" x1="50" y1="55" x2="13" y2="80" />
+                <line class="spoke" x1="50" y1="55" x2="87" y2="80" />
               </g>
             </svg>
             <div class="format-node node-a">
-              <span>Mihomo</span>
-              <strong>YAML</strong>
+              <span class="node-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4.5 7h15M4.5 12h10.5M4.5 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></span>
+              <span class="node-tag">Mihomo</span>
+              <strong class="node-name">YAML</strong>
             </div>
             <div class="format-node node-b">
-              <span>sing-box</span>
-              <strong>JSON</strong>
+              <span class="node-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M10 4.4c-1.9 0-2.5 1-2.5 2.5v1.8c0 1.7-.9 2.9-2.6 3.4 1.7.5 2.6 1.7 2.6 3.4v1.8c0 1.5.6 2.5 2.5 2.5M14 4.4c1.9 0 2.5 1 2.5 2.5v1.8c0 1.7.9 2.9 2.6 3.4-1.7.5-2.6 1.7-2.6 3.4v1.8c0 1.5-.6 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+              <span class="node-tag">sing-box</span>
+              <strong class="node-name">JSON</strong>
             </div>
             <div class="format-node node-c">
-              <span>Share</span>
-              <strong>Links</strong>
+              <span class="node-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M10.3 13.7a3.6 3.6 0 0 0 5.1 0l2.3-2.3a3.6 3.6 0 1 0-5.1-5.1l-1 1M13.7 10.3a3.6 3.6 0 0 0-5.1 0l-2.3 2.3a3.6 3.6 0 1 0 5.1 5.1l1-1" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" /></svg></span>
+              <span class="node-tag">Share</span>
+              <strong class="node-name">Links</strong>
             </div>
+            <span class="hub-aura" aria-hidden="true"></span>
             <div class="hub">
-              <svg class="hub-mark" viewBox="0 0 24 24" fill="none">
-                <path d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+              <svg class="hub-mark" viewBox="0 0 24 24" fill="none"><path d="M5 7h7a4 4 0 1 1 0 8H8M19 17h-7a4 4 0 1 1 0-8h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
               <span class="hub-label">3-way</span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="features" aria-label="特性">
-        <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+      <ul class="showcase-feats">
+        <li class="feat">
+          <span class="feat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8h11l-3-3M19 16H8l3 3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+          <div class="feat-body">
+            <h2 class="feat-title">三种格式互转</h2>
+            <p class="feat-text">Mihomo YAML、sing-box JSON 与分享链接任意两两转换，字段无损保留。</p>
           </div>
-          <div>
-            <div class="feat-title">极速转换</div>
-            <div class="feat-desc">本地运算,无网络请求</div>
+        </li>
+        <li class="feat">
+          <span class="feat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7l7-4Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" /><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+          <div class="feat-body">
+            <h2 class="feat-title">15 种常见协议</h2>
+            <p class="feat-text">覆盖 vmess、vless、trojan、hysteria2、tuic、wireguard 等主流协议。</p>
           </div>
+        </li>
+        <li class="feat">
+          <span class="feat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" stroke-width="1.9" /><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+          <div class="feat-body">
+            <h2 class="feat-title">纯前端 · 零上传</h2>
+            <p class="feat-text">解析与转换全部在浏览器内完成，节点数据不离开你的设备。</p>
+          </div>
+        </li>
+      </ul>
+
+      <div class="showcase-proto">
+        <span class="proto-label">已支持</span>
+        <ul class="proto-list">
+          <li>vmess</li><li>vless</li><li>trojan</li><li>ss</li><li>ssr</li><li>hysteria</li><li>hysteria2</li><li>tuic</li><li>anytls</li><li>wireguard</li><li>socks</li><li>http</li><li>naive</li><li>snell</li><li>ssh</li>
+        </ul>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <section class="hero-strip" aria-labelledby="hero-title">
+        <div class="hero-lead">
+          <p class="eyebrow"><span class="eyebrow-dot"></span>本地运行 · 数据不离开浏览器</p>
+          <h1 id="hero-title" class="hero-title">代理配置<span>无损互转</span></h1>
+          <p class="hero-note">Mihomo YAML · sing-box JSON · 分享链接，支持 15 种常见协议</p>
         </div>
-        <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-              <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
-          <div>
-            <div class="feat-title">隐私无虞</div>
-            <div class="feat-desc">节点数据不上传服务器</div>
-          </div>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-          </div>
-          <div>
-            <div class="feat-title">多协议</div>
-            <div class="feat-desc">vmess · vless · trojan · ss/ssr · hy1/hy2 · tuic · wg · naive · snell · ssh</div>
-          </div>
-        </div>
+        <ol class="flow-list" aria-label="转换流程">
+          <li><span>01</span><strong>Detect</strong><small>识别格式</small></li>
+          <li><span>02</span><strong>Normalize</strong><small>统一模型</small></li>
+          <li><span>03</span><strong>Serialize</strong><small>生成输出</small></li>
+        </ol>
       </section>
 
       <div class="io-grid">
-        <section class="pane card">
+        <section class="pane card input-pane" aria-labelledby="input-title">
           <div class="pane-head">
-            <span class="pane-title">
-              <span class="pane-dot" style="background: var(--accent)"></span>
-              输入(自动识别)
-            </span>
-            <span class="pane-meta">
-              <span id="detect-badge" class="badge" hidden></span>
-              <span id="hint" class="hint"></span>
-            </span>
+            <div class="pane-title-wrap"><span class="pane-dot input-dot"></span><h2 id="input-title" class="pane-title">输入</h2><span class="pane-label">自动识别</span></div>
+            <div class="pane-meta"><span id="detect-badge" class="badge" hidden></span><span id="hint" class="hint" aria-live="polite"></span></div>
           </div>
-          <textarea
-            id="input"
-            spellcheck="false"
-            placeholder="粘贴 sing-box JSON、Mihomo YAML 或分享链接，多节点用换行/空行/逗号/分号分隔。"
-          ></textarea>
+          <textarea id="input" spellcheck="false" aria-label="输入代理配置" placeholder="粘贴 Mihomo YAML、sing-box JSON 或分享链接…"></textarea>
+          <div class="pane-foot">
+            <span class="field-note">支持换行、逗号或分号分隔多条链接</span>
+            <div class="pane-actions">
+              <button id="btn-demo" class="ghost small" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg><span>示例</span></button>
+              <button id="btn-clear" class="ghost small danger-soft" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg><span>清空</span></button>
+            </div>
+          </div>
         </section>
 
-        <section class="pane card pane-output">
+        <section class="pane card pane-output" aria-labelledby="output-title">
           <div class="output-bar">
-            <div class="output-bar-head">
-              <span class="bar-label">输出格式</span>
-              <div class="bar-actions bar-actions-secondary" role="group" aria-label="输入操作">
-                <button id="btn-demo" class="ghost small" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-                    <path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-                  </svg>
-                  <span>示例</span>
-                </button>
-                <button id="btn-clear" class="ghost small danger-soft" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span>清空</span>
-                </button>
-              </div>
+            <div class="pane-title-wrap"><span class="pane-dot output-dot"></span><h2 id="output-title" class="pane-title">输出格式</h2></div>
+            <div class="bar-group format-segments" role="radiogroup" aria-label="输出格式">
+              <label class="seg"><input type="radio" name="target" value="links" checked /><span>分享链接</span></label>
+              <label class="seg"><input type="radio" name="target" value="singbox" /><span>sing-box JSON</span></label>
+              <label class="seg"><input type="radio" name="target" value="mihomo" /><span>Mihomo YAML</span></label>
             </div>
-            <div class="output-bar-main">
-              <div class="bar-group format-segments" role="radiogroup" aria-label="输出格式">
-                <label class="seg">
-                  <input type="radio" name="target" value="links" checked />
-                  <span>分享链接</span>
-                </label>
-                <label class="seg">
-                  <input type="radio" name="target" value="singbox" />
-                  <span>sing-box JSON</span>
-                </label>
-                <label class="seg">
-                  <input type="radio" name="target" value="mihomo" />
-                  <span>Mihomo YAML</span>
-                </label>
-              </div>
-              <button id="btn-convert" class="primary output-primary-action" type="button">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 7h11l-3-3M19 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <span>转换</span>
-                <kbd class="kbd">⌘↵</kbd>
-              </button>
-            </div>
+            <button id="btn-convert" class="primary output-primary-action" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h11l-3-3M19 17H8l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg><span>转换</span><kbd class="kbd">Ctrl↵</kbd></button>
           </div>
 
           <div class="pane-head pane-head-tabs">
-            <span class="text-only-note" hidden>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-              纯文本输出
-            </span>
+            <span class="text-only-note" hidden><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>纯文本输出</span>
             <div class="tabs" role="tablist" aria-label="输出形态">
-              <button class="tab active" data-tab="text" role="tab" type="button">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-                <span>文本</span>
-              </button>
-              <button class="tab" data-tab="sub" role="tab" type="button">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8" /><path d="M8 9h8M8 13h6M8 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-                <span>订阅</span>
-              </button>
-              <button class="tab" data-tab="qr" role="tab" type="button">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
-                  <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
-                  <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.8" />
-                  <path d="M14 14h3v3h-3zM20 14h1v1h-1zM14 20h1v1h-1zM18 18h3v3h-3z" fill="currentColor" />
-                </svg>
-                <span>二维码</span>
-              </button>
+              <button class="tab active" data-tab="text" role="tab" aria-selected="true" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg><span>文本</span></button>
+              <button class="tab" data-tab="sub" role="tab" aria-selected="false" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8" /><path d="M8 9h8M8 13h6M8 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg><span>订阅</span></button>
+              <button class="tab" data-tab="qr" role="tab" aria-selected="false" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" /><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8" /><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.8" /><path d="M14 14h3v3h-3zM20 14h1v1h-1zM14 20h1v1h-1zM18 18h3v3h-3z" fill="currentColor" /></svg><span>二维码</span></button>
             </div>
-            <button id="btn-copy" class="ghost small" type="button">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8" />
-                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" />
-              </svg>
-              <span>复制当前</span>
-            </button>
+            <button id="btn-copy" class="ghost small" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" /></svg><span>复制当前</span></button>
           </div>
           <div class="tab-panels">
-            <div class="tab-panel active" data-tab="text">
-              <textarea id="output" spellcheck="false" readonly placeholder="转换结果将显示在这里…"></textarea>
-            </div>
-            <div class="tab-panel" data-tab="sub">
-              <textarea id="output-sub" spellcheck="false" readonly placeholder="base64 订阅文本"></textarea>
-              <div class="sub-meta">
-                <span id="sub-size" class="hint"></span>
-                <span class="sub-tip">可用作 Shadowrocket / Clash 订阅内容</span>
-              </div>
-            </div>
-            <div class="tab-panel" data-tab="qr">
-              <div id="qr-viewer" class="qr-viewer" data-empty="true">
-                <div class="qr-empty">仅在目标为「分享链接」时生成二维码</div>
-              </div>
-            </div>
+            <div class="tab-panel active" data-tab="text"><textarea id="output" spellcheck="false" readonly aria-label="文本输出" placeholder="转换结果将显示在这里…"></textarea></div>
+            <div class="tab-panel" data-tab="sub"><textarea id="output-sub" spellcheck="false" readonly aria-label="base64 订阅输出" placeholder="base64 订阅文本"></textarea><div class="sub-meta"><span id="sub-size" class="hint"></span><span class="sub-tip">可用作 Shadowrocket / Clash 订阅内容</span></div></div>
+            <div class="tab-panel" data-tab="qr"><div id="qr-viewer" class="qr-viewer" role="region" aria-label="二维码查看器，可使用左右箭头切换" aria-keyshortcuts="ArrowLeft ArrowRight" tabindex="0" data-empty="true"><div class="qr-empty">仅在目标为「分享链接」时生成二维码</div></div></div>
           </div>
         </section>
       </div>
-
-      <details id="history" class="history card">
-        <summary class="history-summary">
-          <span class="history-title">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span>最近转换</span>
-            <span class="history-meta"><span id="history-count">0</span> / 10</span>
-          </span>
-          <span class="history-actions">
-            <button id="btn-history-clear" class="ghost small" type="button">清空</button>
-            <span class="chev" aria-hidden="true">▾</span>
-          </span>
-        </summary>
-        <div id="history-list" class="history-list" data-empty="true">
-          <div class="history-empty">暂无记录，本次会话自动保存</div>
-        </div>
-      </details>
-
-      <div id="error" class="err" hidden></div>
     </main>
 
     <footer class="ftr">
-      <div class="ftr-inner">
-        <span class="ftr-brand">© proxvert</span>
-        <span class="ftr-sep">·</span>
-        <span>纯前端 · 节点数据不会离开浏览器</span>
-        <span class="ftr-sep">·</span>
-        <a href="https://github.com/junhao2314/proxvert" target="_blank" rel="noopener">GitHub</a>
-      </div>
+      <div class="ftr-inner"><span class="ftr-brand">© proxvert</span><span>纯前端 · 节点数据不会离开浏览器</span><span class="ftr-sep">·</span><a href="https://github.com/junhao2314/proxvert" target="_blank" rel="noopener">GitHub</a></div>
     </footer>
+
+    <div id="history-backdrop" class="drawer-backdrop" aria-hidden="true"></div>
+    <aside id="history" class="drawer" aria-label="最近转换记录" aria-hidden="true">
+      <header class="drawer-head">
+        <div class="drawer-title-wrap">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /><path d="M3.05 11a9 9 0 1 0 .54-3M3 4v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <h2 class="drawer-title">最近转换</h2>
+          <span class="history-meta"><span id="history-count">0</span> / 10</span>
+        </div>
+        <div class="drawer-actions">
+          <button id="btn-history-clear" class="ghost small" type="button">清空</button>
+          <button id="btn-history-close" class="ghost small icon-btn" type="button" aria-label="关闭历史记录">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" /></svg>
+          </button>
+        </div>
+      </header>
+      <div id="history-list" class="history-list" data-empty="true"><div class="history-empty">暂无记录，本次会话自动保存</div></div>
+    </aside>
+
+    <div id="error" class="toast" role="alert"></div>
 
     <script type="module" src="./src/main.js"></script>
   </body>

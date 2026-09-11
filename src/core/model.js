@@ -6,7 +6,7 @@
  * @property {string} tag
  * @property {string} type   one of CONVERTIBLE_TYPES
  * @property {string} server
- * @property {number|string} server_port
+ * @property {number} [server_port]
  * @property {string} [uuid]
  * @property {string} [password]
  * @property {string} [method]      ss/ssr cipher
@@ -88,7 +88,19 @@ export function normalizeType(t) {
   if (s === 'hy2') return 'hysteria2';
   if (s === 'socks5' || s === 'socks4' || s === 'socks5-tls') return 'socks';
   if (s === 'wg') return 'wireguard';
-  return s;
+  return CONVERTIBLE_TYPES.has(s) ? s : '';
+}
+
+/** Normalize network ports to integers in the valid TCP/UDP range. */
+export function normalizePort(value) {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!/^\d+$/.test(text)) return undefined;
+    value = Number(text);
+  }
+  if (!Number.isSafeInteger(value) || value < 1 || value > 65535) return undefined;
+  return value;
 }
 
 /** Drop empty / undefined entries for clean serialization. */

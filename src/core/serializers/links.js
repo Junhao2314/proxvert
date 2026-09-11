@@ -7,6 +7,7 @@
  * - 删除 fs/process 相关分支
  * - 改成 ES Module 导出
  */
+import { normalizePort } from '../model.js';
 
 function b64Utf8(str) {
   const bytes = new TextEncoder().encode(String(str));
@@ -34,8 +35,9 @@ function formatHost(host) {
 
 function formatHostPort(host, port) {
   const value = formatHost(host);
-  if (port === undefined || port === null || port === '') return value;
-  return `${value}:${port}`;
+  const normalizedPort = normalizePort(port);
+  if (normalizedPort === undefined) return value;
+  return `${value}:${normalizedPort}`;
 }
 
 function mapTransportParams(t, q) {
@@ -99,7 +101,7 @@ function vmessFrom(ob, name) {
     v: '2',
     ps: name || ob.tag || '',
     add: ob.server || '',
-    port: String(ob.server_port || ''),
+    port: String(normalizePort(ob.server_port) ?? ''),
     id: ob.uuid || '',
     aid: String(ob.alter_id || 0),
     scy: ob.security || 'auto',
@@ -154,7 +156,8 @@ function ssrFrom(ob, name) {
   if (ob.protocol_param) params.push('protoparam=' + b64Utf8(ob.protocol_param).replace(/=+$/, ''));
   if (name || ob.tag) params.push('remarks=' + b64Utf8(name || ob.tag).replace(/=+$/, ''));
   const tail = params.length ? '/?' + params.join('&') : '';
-  const body = `${formatHost(ob.server)}:${ob.server_port || ''}:${ob.protocol || 'origin'}:${ob.method || 'aes-256-cfb'}:${ob.obfs || 'plain'}:${passB64}${tail}`;
+  const port = normalizePort(ob.server_port);
+  const body = `${formatHost(ob.server)}:${port ?? ''}:${ob.protocol || 'origin'}:${ob.method || 'aes-256-cfb'}:${ob.obfs || 'plain'}:${passB64}${tail}`;
   return 'ssr://' + b64Utf8(body).replace(/=+$/, '');
 }
 

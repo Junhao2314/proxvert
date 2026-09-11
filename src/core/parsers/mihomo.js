@@ -2,7 +2,7 @@
  * Mihomo (Clash.Meta) YAML → NormalizedNode[]
  */
 import yaml from 'js-yaml';
-import { CONVERTIBLE_TYPES, normalizeType } from '../model.js';
+import { CONVERTIBLE_TYPES, normalizePort, normalizeType } from '../model.js';
 
 export default function parse(text) {
   const doc = yaml.load(text);
@@ -21,7 +21,7 @@ function fromMihomo(p) {
     tag: p.name,
     type,
     server: p.server,
-    server_port: Number(p.port) || p.port
+    server_port: normalizePort(p.port)
   };
 
   switch (type) {

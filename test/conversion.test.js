@@ -9,6 +9,72 @@ import serializeMihomo from '../src/core/serializers/mihomo.js';
 import parseSingbox from '../src/core/parsers/singbox.js';
 import serializeSingbox from '../src/core/serializers/singbox.js';
 import { splitMultiLink } from '../src/core/split-links.js';
+import { normalizePort, normalizeType } from '../src/core/model.js';
+
+test('normalizes only supported node types', () => {
+  assert.equal(normalizeType('VLESS'), 'vless');
+  assert.equal(normalizeType('ss'), 'shadowsocks');
+  assert.equal(normalizeType('unknown-protocol'), '');
+  assert.equal(normalizeType(''), '');
+});
+
+test('normalizes server ports to integers across parsers', () => {
+  assert.equal(normalizePort('443'), 443);
+  assert.equal(normalizePort(8443), 8443);
+  assert.equal(normalizePort('not-a-port'), undefined);
+  assert.equal(normalizePort(65536), undefined);
+
+  const vmessPayload = Buffer.from(JSON.stringify({
+    v: '2',
+    ps: 'vmess',
+    add: 'example.com',
+    port: '9443',
+    id: 'uuid'
+  })).toString('base64');
+  const [vmess] = parseLinks(`vmess://${vmessPayload}`);
+  assert.equal(vmess.server_port, 9443);
+  assert.equal(typeof vmess.server_port, 'number');
+
+  const [mihomo] = parseMihomo([
+    'proxies:',
+    '  - name: ss',
+    '    type: ss',
+    '    server: example.com',
+    '    port: "8388"',
+    '    cipher: aes-256-gcm',
+    '    password: pass'
+  ].join('\n'));
+  assert.equal(mihomo.server_port, 8388);
+  assert.equal(typeof mihomo.server_port, 'number');
+
+  const [singbox] = parseSingbox(JSON.stringify([{
+    type: 'vless',
+    server: 'example.com',
+    server_port: '8443',
+    uuid: 'uuid'
+  }]));
+  assert.equal(singbox.server_port, 8443);
+  assert.equal(typeof singbox.server_port, 'number');
+
+  const rawNode = {
+    tag: 'port',
+    type: 'vless',
+    server: 'example.com',
+    server_port: '9443',
+    uuid: 'uuid'
+  };
+  assert.equal(JSON.parse(serializeSingbox([rawNode]))[0].server_port, 9443);
+  assert.match(serializeMihomo([rawNode]), /port: 9443/);
+  assert.match(serializeLinks([rawNode]), /example\.com:9443/);
+});
+
+test('skips malformed VMess payloads without aborting other links', () => {
+  const validLink = 'trojan://secret@example.com:443#valid';
+  const nodes = parseLinks(`vmess://not-valid-json\n${validLink}`);
+
+  assert.deepEqual(nodes.map((node) => node.type), ['trojan']);
+  assert.equal(nodes[0].tag, 'valid');
+});
 
 test('preserves VLESS Reality and WebSocket parameters through share links', () => {
   const source = 'vless://uuid@example.com:443?security=reality&pbk=pubkey&sid=abcd&type=ws&host=edge.example.com&path=%2Fws#edge';

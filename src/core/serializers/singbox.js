@@ -2,7 +2,7 @@
  * NormalizedNode[] → sing-box outbound array JSON
  * 中转模型基本贴近 sing-box outbound 形态，少数字段在出口映射后输出。
  */
-import { clean } from '../model.js';
+import { clean, normalizePort } from '../model.js';
 
 export default function serialize(nodes) {
   const outbounds = nodes
@@ -13,7 +13,10 @@ export default function serialize(nodes) {
 }
 
 function toSingboxOutbound(node) {
-  const outbound = { ...node };
+  const outbound = {
+    ...node,
+    server_port: normalizePort(node.server_port)
+  };
 
   normalizeTlsFallbackFields(outbound);
 

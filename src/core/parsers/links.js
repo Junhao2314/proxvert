@@ -2,7 +2,7 @@
  * 分享链接（含 base64 订阅）→ NormalizedNode[]
  */
 import { base64Decode } from '../detect.js';
-import { CONVERTIBLE_TYPES } from '../model.js';
+import { CONVERTIBLE_TYPES, normalizePort } from '../model.js';
 import { isShareLink, normalizeShareLinkScheme } from '../share-link-schemes.js';
 
 export default function parse(text, opts = {}) {
@@ -27,8 +27,8 @@ export default function parse(text, opts = {}) {
     try {
       const node = parseOne(line);
       if (node && CONVERTIBLE_TYPES.has(node.type)) out.push(node);
-    } catch (e) {
-      console.warn('解析失败:', safeLinkScheme(line), e.message);
+    } catch {
+      console.warn('解析失败:', safeLinkScheme(line));
     }
   }
   return out;
@@ -73,15 +73,20 @@ function parseOne(link) {
 }
 
 function parseVmess(body) {
-  const json = base64Decode(body);
-  const v = JSON.parse(json);
+  let v;
+  try {
+    v = JSON.parse(base64Decode(body));
+  } catch {
+    return null;
+  }
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const net = v.net || 'tcp';
   const tlsEnabled = v.tls === 'tls' || v.tls === 'reality';
   const node = {
     tag: v.ps || '',
     type: 'vmess',
     server: v.add || '',
-    server_port: Number(v.port) || v.port,
+    server_port: normalizePort(v.port),
     uuid: v.id || '',
     alter_id: Number(v.aid || 0),
     security: v.scy || 'auto'
@@ -121,7 +126,7 @@ function parseStdLink(type, link, opts = {}) {
   }
   const q = Object.fromEntries(u.searchParams.entries());
   const host = normalizeHost(u.hostname);
-  const port = u.port ? Number(u.port) : undefined;
+  const port = normalizePort(u.port);
   const userInfo = decodeURIComponent(u.username || '');
   const userPass = decodeURIComponent(u.password || '');
 
@@ -336,7 +341,7 @@ function parseSSR(body) {
     tag: tryB64Decode(params.get('remarks') || ''),
     type: 'shadowsocksr',
     server,
-    server_port: Number(port) || port,
+    server_port: normalizePort(port),
     password: tryB64Decode(passB64),
     method,
     protocol,
@@ -364,7 +369,7 @@ function splitHostPort(s) {
       const host = value.slice(1, end);
       const rawPort = value.slice(end + 2);
       if (value.charAt(end + 1) === ':' && rawPort) {
-        return [host, Number(rawPort) || rawPort];
+        return [host, normalizePort(rawPort)];
       }
       return [host, undefined];
     }
@@ -375,7 +380,7 @@ function splitHostPort(s) {
   if (value.indexOf(':') !== i && rawPort && !/^\d+$/.test(rawPort)) {
     return [normalizeHost(value), undefined];
   }
-  return [normalizeHost(value.slice(0, i)), Number(rawPort) || rawPort];
+  return [normalizeHost(value.slice(0, i)), normalizePort(rawPort)];
 }
 
 function parseMbps(s) {
